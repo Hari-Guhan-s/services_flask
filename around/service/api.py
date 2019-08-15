@@ -5,20 +5,33 @@ from flask_cors import CORS, cross_origin
 from flask import jsonify
 import json
 from mongoengine import *
-from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt)
+from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt,get_jwt_claims)
 from passlib.hash import pbkdf2_sha256 as sha256
 app = Flask(__name__)
 cors = CORS(app)
 from flask_jwt_extended import JWTManager
 app.config['JWT_SECRET_KEY'] = 'nevergiveup'
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'
+app.config['JWT_BLACKLIST_ENABLED'] = True
+app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
 jwt = JWTManager(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
+
+@jwt.token_in_blacklist_loader
+def check_if_token_in_blacklist(decrypted_token):
+    connect('around')
+    jti = decrypted_token['jti']
+    print(jti)
+    token=TokenBlacklist()
+    if token.validate_token(token=jti):
+        return jsonify({'code': 401,'status': 'Token Expired'})
+    
 
 @jwt.user_claims_loader
 def add_claims_to_access_token(identity):
     user=User.objects(email=identity).first()
     return {
+        'user_id':str(user.id),
         'username': user.user_name,
         'name' : user.first_name +' '+user.last_name,
     }
@@ -26,7 +39,7 @@ def add_claims_to_access_token(identity):
 @jwt.expired_token_loader
 def expired_token_callback(expired_token):
     #return redirect(url_for('refresh_token'))
-    return jsonify({'code': 401,'status': 'Expired'})
+    return jsonify({'code': 401,'status': 'Token Expired'})
     
 @jwt_refresh_token_required
 @app.route('/auth',methods = ['GET'])
@@ -37,15 +50,15 @@ def refresh_token():
         access_token = create_access_token(identity = current_user)
         return jsonify({'code':200,'status':'Success','access_token': access_token})
     except:
-        return jsonify({'code':401,'status':'Expired'})
+        return jsonify({'code':401,'status':'Token Expired'})
 
 
-@app.route('/signup',methods = ['POST'])
+@app.route('/auth/signup',methods = ['POST'])
 @cross_origin()
 def signup():
     requestbody =json.loads(request.data)
     if(len(requestbody['password']) < 8):
-        return jsonify({'code': 400,'status': 'Password should be min 8 characters'})
+        return jsonify({'code': 400,'status': 'Password must be minimun 8 characters'})
     requestbody['password']= sha256.hash(requestbody['password'])   
     try:
         connect('around')
@@ -96,11 +109,10 @@ def validate_email():
     
     
 
-@app.route('/signin',methods = ['POST'])
+@app.route('/auth/signin',methods = ['POST'])
 @cross_origin()
 def signin():
     requestbody =json.loads(request.data)
-    print(requestbody['password'])
     try:
         connect('around')
         user=User()
@@ -112,8 +124,54 @@ def signin():
         return jsonify({'code': 400,'status': 'Email or Password is incorrect.'})
     except Exception as e:
         print(e)
-        return jsonify({'code': 500,'status': 'Internal Server Error'}) 
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
+
+@app.route('/auth/signout',methods = ['GET'])
+@jwt_required
+@cross_origin()
+def signout():
+    connect('around')
+    jti = get_raw_jwt()['jti']
+    blacklist =TokenBlacklist()
+    blacklist.add_to_blacklist(jti)
+    return jsonify({'code': 200,'status': 'Successfully logged out'})
+
+@app.route('/post',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def save_post():
+    requestbody =json.loads(request.data)
+    try:
+        claims = get_jwt_claims()
+        connect('around')
+        post=Post()
+        is_valid = post.validate_post(requestbody,claims)
+        if is_valid:
+            return jsonify({'code': 200,'status': 'Saved successfully','id' :is_valid})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
+@app.route('/post/<post_id>',methods = ['GET'])
+@cross_origin()
+def view_post(post_id):
+    try:
+        claims = get_jwt_claims()
+        connect('around')
+        post=Post()
+        is_valid = post.view_post(post_id,claims)
+        if is_valid:
+            return jsonify({'code': 200,'status': 'Saved successfully','data' :is_valid})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
     
 if __name__ == '__main__':
     app.debug = True
     app.run(debug = True)
+    
+    

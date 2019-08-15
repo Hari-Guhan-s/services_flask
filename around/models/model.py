@@ -2,7 +2,7 @@ from mongoengine import *
 import re
 import datetime
 from passlib.hash import pbkdf2_sha256 as sha256
-
+import json
 class User(Document):
     def validate_record(self,username,email,password,first_name,last_name):
         if not first_name:
@@ -52,16 +52,33 @@ class User(Document):
     location  = PointField()
     profile_image = ImageField()
     joined_on = DateTimeField(default=datetime.datetime.now())
+    last_sign_in = DateTimeField()
+    language=StringField(default='en/US',required=True)
+    blocklist =ListField(ReferenceField('self'))
     active = BooleanField(default=True)
     
+class TokenBlacklist(Document):
+    
+    token = StringField(required=True,primary_key=True)
+    
+    def validate_token(self,token):
+        if TokenBlacklist.objects(token=token):
+            return True
+        else:
+            return False
+        
+    def add_to_blacklist(self,token):
+        add_token = TokenBlacklist(token=token)
+        add_token.save()
+    
 class Post(Document):
-    CHOICES=['Public','Private','Me']
-    author = ReferenceField(User,dbref=True,required=True)
+    CHOICES=('Public','Private','Me')
+    author = ReferenceField(User,required=True)
     mentions =ListField(ReferenceField(User))
     created_time= DateTimeField(default=datetime.datetime.now(),required=True)
     updated_time= DateTimeField()
     post=StringField()
-    privacy= BaseField(choices=CHOICES)
+    privacy= StringField(choices=CHOICES,default='Public')
     likes = LongField(default= 0)
     liked_by = ListField(ReferenceField(User))
     dislikes = LongField(default= 0)
@@ -71,6 +88,31 @@ class Post(Document):
     hashtags = ListField()
     active = BooleanField(default=True)
     
+    def validate_post(self,post,claims):
+        if post and claims:
+            attachment =[]
+            mention=[]
+            for media in post.get('mention',[]):
+                m = MediaAttachment.objects(id=media)
+                attachment.append(m)
+            for user in post.get('media',[]):
+                u = User.objects(id=user)
+                mention.append(u)
+            author = User.objects(id=claims['user_id']).first()
+            new_post =Post(author=author,post=post['post'],privacy=post.get('privacy'),hashtags=post.get('hashtags',[]),attachments=attachment,mentions=mention)
+            new_post.save()
+            return str(new_post.id)
+        return False
+    
+    def view_post(self,post_id,claims):
+        if post_id:
+            post =Post.objects(id=post_id,active=True).exclude('active')
+            if post:
+                return  json.loads(post.to_json())
+            return False
+        return False
+            
+    
 class MediaAttachment(Document):
     filename = StringField(required=True)
     type = StringField(required= True)
@@ -79,3 +121,5 @@ class MediaAttachment(Document):
     uploaded_by = ReferenceField(User,dbref=True,required=True)
     active = BooleanField(default=True)
     
+    def upload_media_attachment(self,data):
+        pass
