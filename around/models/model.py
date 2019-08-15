@@ -51,6 +51,32 @@ class User(Document):
     email = EmailField(required=True,unique= True)
     password = StringField(required=True)
     location  = PointField()
-    last_sign_in = DateTimeField(default=datetime.datetime.now())
+    profile_image = ImageField()
+    joined_on = DateTimeField(default=datetime.datetime.now())
+    active = BooleanField(default=True)
     
+class Post(Document):
+    CHOICES=['Public','Private','Me']
+    author = ReferenceField(User,dbref=True,required=True)
+    mentions =ListField(ReferenceField(User))
+    created_time= DateTimeField(default=datetime.datetime.now(),required=True)
+    updated_time= DateTimeField()
+    post=StringField()
+    privacy= BaseField(choices=CHOICES)
+    likes = LongField(default= 0)
+    liked_by = ListField(ReferenceField(User))
+    dislikes = LongField(default= 0)
+    disliked_by = ListField(ReferenceField(User))
+    shares = LongField(default= 0)
+    attachments = ListField(ReferenceField(Document))
+    hashtags = ListField()
+    active = BooleanField(default=True)
+    
+class MediaAttachment(Document):
+    filename = StringField(required=True)
+    type = StringField(required= True)
+    content = FileField(required=True)
+    uploaded_on = DateTimeField(required=True,default=datetime.datetime.now())
+    uploaded_by = ReferenceField(User,dbref=True,required=True)
+    active = BooleanField(default=True)
     
