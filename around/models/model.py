@@ -4,7 +4,6 @@ import datetime
 from passlib.hash import pbkdf2_sha256 as sha256
 
 class User(Document):
-       
     def validate_record(self,username,email,password,first_name,last_name):
         if not first_name:
             return "Please enter the first name"
