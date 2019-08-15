@@ -55,11 +55,12 @@ class User(Document):
     joined_on = DateTimeField(default=datetime.datetime.now())
     last_sign_in = DateTimeField()
     language=StringField(default='en/US',required=True)
+    blocklist =ListField(ReferenceField('self'))
     active = BooleanField(default=True)
     
 class TokenBlacklist(Document):
     
-    token = StringField(required=True)
+    token = StringField(required=True,primary_key=True)
     
     def validate_token(self,token):
         if TokenBlacklist.objects(token=token):
@@ -87,6 +88,22 @@ class Post(Document):
     attachments = ListField(ReferenceField(Document))
     hashtags = ListField()
     active = BooleanField(default=True)
+    
+    def validate_post(self,post,claims):
+        if post and claims:
+            attachment =[]
+            mention=[]
+            for media in post.get('mention',[]):
+                m = MediaAttachment.objects(id=media)
+                attachment.append(m)
+            for user in post.get('media',[]):
+                u = User.objects(id=user)
+                mention.append(u)
+            author = User.objects(id=claims['user_id']).first()
+            new_post =Post(author=author,post=post['post'],privacy=post.get('privacy'),hashtags=post.get('hashtags',[]),attachments=attachment,mentions=mention)
+            new_post.save()
+            return str(new_post.id)
+        return False
     
 class MediaAttachment(Document):
     filename = StringField(required=True)
