@@ -15,6 +15,14 @@ app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'
 jwt = JWTManager(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
+@jwt.token_in_blacklist_loader
+def check_if_token_in_blacklist(decrypted_token):
+    connect('around')
+    jti = decrypted_token['jti']
+    token=TokenBlacklist
+    print(token.validate_token(jti))
+    
+
 @jwt.user_claims_loader
 def add_claims_to_access_token(identity):
     user=User.objects(email=identity).first()
@@ -26,7 +34,7 @@ def add_claims_to_access_token(identity):
 @jwt.expired_token_loader
 def expired_token_callback(expired_token):
     #return redirect(url_for('refresh_token'))
-    return jsonify({'code': 401,'status': 'Expired'})
+    return jsonify({'code': 401,'status': 'Token Expired'})
     
 @jwt_refresh_token_required
 @app.route('/auth',methods = ['GET'])
@@ -37,10 +45,10 @@ def refresh_token():
         access_token = create_access_token(identity = current_user)
         return jsonify({'code':200,'status':'Success','access_token': access_token})
     except:
-        return jsonify({'code':401,'status':'Expired'})
+        return jsonify({'code':401,'status':'Token Expired'})
 
 
-@app.route('/signup',methods = ['POST'])
+@app.route('/auth/signup',methods = ['POST'])
 @cross_origin()
 def signup():
     requestbody =json.loads(request.data)
@@ -96,7 +104,7 @@ def validate_email():
     
     
 
-@app.route('/signin',methods = ['POST'])
+@app.route('/auth/signin',methods = ['POST'])
 @cross_origin()
 def signin():
     requestbody =json.loads(request.data)
@@ -112,7 +120,18 @@ def signin():
         return jsonify({'code': 400,'status': 'Email or Password is incorrect.'})
     except Exception as e:
         print(e)
-        return jsonify({'code': 500,'status': 'Internal Server Error'}) 
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
+
+@app.route('/auth/signout',methods = ['GET'])
+@jwt_required
+@cross_origin()
+def signout():
+    connect('around')
+    jti = get_raw_jwt()['jti']
+    blacklist =TokenBlacklist()
+    blacklist.add_to_blacklist(jti)
+    return jsonify({'code': 200,'status': 'Successfully logged out'})
     
 if __name__ == '__main__':
     app.debug = True

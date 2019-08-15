@@ -53,16 +53,32 @@ class User(Document):
     location  = PointField()
     profile_image = ImageField()
     joined_on = DateTimeField(default=datetime.datetime.now())
+    last_sign_in = DateTimeField()
+    language=StringField(default='en/US',required=True)
     active = BooleanField(default=True)
     
+class TokenBlacklist(Document):
+    
+    token = StringField(required=True)
+    
+    def validate_token(self,token):
+        if TokenBlacklist.objects(token=token):
+            return True
+        else:
+            return False
+        
+    def add_to_blacklist(self,token):
+        add_token = TokenBlacklist(token=token)
+        add_token.save()
+    
 class Post(Document):
-    CHOICES=['Public','Private','Me']
+    CHOICES=('Public','Private','Me')
     author = ReferenceField(User,dbref=True,required=True)
     mentions =ListField(ReferenceField(User))
     created_time= DateTimeField(default=datetime.datetime.now(),required=True)
     updated_time= DateTimeField()
     post=StringField()
-    privacy= BaseField(choices=CHOICES)
+    privacy= StringField(choices=CHOICES,default='Public')
     likes = LongField(default= 0)
     liked_by = ListField(ReferenceField(User))
     dislikes = LongField(default= 0)
