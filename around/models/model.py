@@ -2,7 +2,7 @@ from mongoengine import *
 import re
 import datetime
 from passlib.hash import pbkdf2_sha256 as sha256
-
+import json
 class User(Document):
     
     def validate_record(self,username,email,password,first_name,last_name):
@@ -74,7 +74,7 @@ class TokenBlacklist(Document):
     
 class Post(Document):
     CHOICES=('Public','Private','Me')
-    author = ReferenceField(User,dbref=True,required=True)
+    author = ReferenceField(User,required=True)
     mentions =ListField(ReferenceField(User))
     created_time= DateTimeField(default=datetime.datetime.now(),required=True)
     updated_time= DateTimeField()
@@ -105,6 +105,15 @@ class Post(Document):
             return str(new_post.id)
         return False
     
+    def view_post(self,post_id,claims):
+        if post_id:
+            post =Post.objects(id=post_id,active=True).exclude('active')
+            if post:
+                return  json.loads(post.to_json())
+            return False
+        return False
+            
+    
 class MediaAttachment(Document):
     filename = StringField(required=True)
     type = StringField(required= True)
@@ -113,3 +122,5 @@ class MediaAttachment(Document):
     uploaded_by = ReferenceField(User,dbref=True,required=True)
     active = BooleanField(default=True)
     
+    def upload_media_attachment(self,data):
+        pass

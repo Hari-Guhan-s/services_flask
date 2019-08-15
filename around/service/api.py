@@ -154,6 +154,22 @@ def save_post():
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
+@app.route('/post/<post_id>',methods = ['GET'])
+@cross_origin()
+def view_post(post_id):
+    try:
+        claims = get_jwt_claims()
+        connect('around')
+        post=Post()
+        is_valid = post.view_post(post_id,claims)
+        if is_valid:
+            return jsonify({'code': 200,'status': 'Saved successfully','data' :is_valid})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
+    
 if __name__ == '__main__':
     app.debug = True
     app.run(debug = True)
