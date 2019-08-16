@@ -45,6 +45,10 @@ class User(Document):
                 return user.email
         return False
     
+    def to_json(self):
+        return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language}
+    
+    
     first_name = StringField(max_length=200, required=True)
     last_name = StringField(max_length=200, required=True)
     user_name =StringField()
@@ -71,23 +75,45 @@ class TokenBlacklist(Document):
     def add_to_blacklist(self,token):
         add_token = TokenBlacklist(token=token)
         add_token.save()
+        
+class MediaAttachment(Document):
+    filename = StringField(required=True)
+    type = StringField(required= True)
+    content = FileField(required=True)
+    uploaded_on = DateTimeField(required=True,default=datetime.datetime.now())
+    uploaded_by = ReferenceField(User,required=True)
+    active = BooleanField(default=True)
+    
+    def to_json(self):
+        return {'id':str(self.id),'file_name':self.filename,'type':self.type,'content':self.content,'size':len(self.content)}
+    
+    def upload_media_attachment(self,data):
+        pass
     
 class Post(Document):
+    
+    limit = 5
+    
     CHOICES=('Public','Private','Me')
     author = ReferenceField(User,required=True)
     mentions =ListField(ReferenceField(User))
     created_time= DateTimeField(default=datetime.datetime.now(),required=True)
-    updated_time= DateTimeField()
+    updated_time= DateTimeField(default=datetime.datetime.now())
     post=StringField()
     privacy= StringField(choices=CHOICES,default='Public')
-    likes = LongField(default= 0)
     liked_by = ListField(ReferenceField(User))
-    dislikes = LongField(default= 0)
     disliked_by = ListField(ReferenceField(User))
     shares = LongField(default= 0)
-    attachments = ListField(ReferenceField(Document))
+    attachments = ListField(ReferenceField(MediaAttachment))
     hashtags = ListField()
     active = BooleanField(default=True)
+    
+    def to_json(self):
+        likes_by=[user.to_json() for user in self.liked_by[:self.limit]]
+        dislikes_by=[user.to_json() for user in self.disliked_by[:self.limit]]
+        attachments=[attachment.to_json() for attachment in self.attachments[:self.limit]]
+        data={'id':str(self.id),'author':self.author.to_json(),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments}
+        return data
     
     def validate_post(self,post,claims):
         if post and claims:
@@ -107,20 +133,12 @@ class Post(Document):
     
     def view_post(self,post_id,claims):
         if post_id:
-            post =Post.objects(id=post_id,active=True).exclude('active')
+            post =Post.objects(id=post_id,active=True).exclude('active').first()
             if post:
-                return  json.loads(post.to_json())
+                return  post.to_json()
             return False
         return False
             
     
-class MediaAttachment(Document):
-    filename = StringField(required=True)
-    type = StringField(required= True)
-    content = FileField(required=True)
-    uploaded_on = DateTimeField(required=True,default=datetime.datetime.now())
-    uploaded_by = ReferenceField(User,dbref=True,required=True)
-    active = BooleanField(default=True)
     
-    def upload_media_attachment(self,data):
-        pass
+    

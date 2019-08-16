@@ -163,7 +163,7 @@ def view_post(post_id):
         post=Post()
         is_valid = post.view_post(post_id,claims)
         if is_valid:
-            return jsonify({'code': 200,'status': 'Saved successfully','data' :is_valid})
+            return jsonify({'code': 200,'status': 'Success','data' :is_valid})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         print(e)
