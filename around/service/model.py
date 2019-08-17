@@ -1,7 +1,12 @@
 from mongoengine import *
+from mongoengine.queryset.visitor import Q
 import re
 import datetime
 from passlib.hash import pbkdf2_sha256 as sha256
+
+limit = 5
+offset = 0
+
 class User(Document):
     
     def validate_record(self,username,email,password,first_name,last_name):
@@ -42,6 +47,15 @@ class User(Document):
                 return user.email
         return False
     
+    def forgot_password(self,data):
+        if data:
+            user =User.objects(Q(email =data ) | Q(phone= data))
+            if user:
+                #forgot password login here
+                return True
+            return False
+        return False
+    
     def to_json(self):
         if self.active:
             return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language}
@@ -51,6 +65,7 @@ class User(Document):
     last_name = StringField(max_length=200, required=True)
     user_name =StringField()
     email = EmailField(required=True,unique= True)
+    phone = StringField(unique=True,sparse=True)
     password = StringField(required=True)
     location  = PointField()
     profile_image = ImageField()
@@ -90,7 +105,6 @@ class MediaAttachment(Document):
     
 class Post(Document):
     
-    limit = 5
     
     CHOICES=('Public','Private','Me')
     author = ReferenceField(User,required=True)
@@ -107,9 +121,9 @@ class Post(Document):
     active = BooleanField(default=True)
     
     def to_json(self):
-        likes_by=[user.to_json() for user in self.liked_by[:self.limit]]
-        dislikes_by=[user.to_json() for user in self.disliked_by[:self.limit]]
-        attachments=[attachment.to_json() for attachment in self.attachments[:self.limit]]
+        likes_by=[user.to_json() for user in self.liked_by[:limit]]
+        dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
+        attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
         data={'id':str(self.id),'author':self.author.to_json(),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments}
         return data
     

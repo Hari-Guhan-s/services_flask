@@ -8,7 +8,7 @@ from mongoengine import *
 from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt,get_jwt_claims)
 from passlib.hash import pbkdf2_sha256 as sha256
 app = Flask(__name__)
-cors = CORS(app)
+cors = CORS(app,resources={r"/auth/signup": {"origins": "http://localhost:4200"}})
 from flask_jwt_extended import JWTManager
 app.config['JWT_SECRET_KEY'] = 'nevergiveup'
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'
@@ -53,7 +53,7 @@ def refresh_token():
 
 
 @app.route('/auth/signup',methods = ['POST'])
-@cross_origin()
+@cross_origin(origin='localhost',headers=['Content- Type','Authorization'])
 def signup():
     requestbody =json.loads(request.data)
     if(len(requestbody['password']) < 8):
@@ -135,6 +135,20 @@ def signout():
     blacklist =TokenBlacklist()
     blacklist.add_to_blacklist(jti)
     return jsonify({'code': 200,'status': 'Successfully logged out'})
+
+@app.route('/auth/forgot',methods = ['POST'])
+@cross_origin()
+def forgot_password():
+    requestbody =json.loads(request.data)
+    data = requestbody['email'] or requestbody['phone']
+    if data:
+        connect('around')
+        user= User()
+        if(user.forgot_password()):
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    return jsonify({'code': 400,'status': 'Something went wrong.'})
+
 
 @app.route('/post',methods = ['POST'])
 @jwt_required
