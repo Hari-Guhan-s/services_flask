@@ -38,16 +38,15 @@ class User(Document):
     
     def validate_sign_in(self,email,password):
         if email and password:
-            print('password')
-            print(password)
             user = User.objects(email=email).first()
             if user and sha256.verify(password, user.password):
                 return user.email
         return False
     
     def to_json(self):
-        return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language}
-    
+        if self.active:
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language}
+        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US'}
     
     first_name = StringField(max_length=200, required=True)
     last_name = StringField(max_length=200, required=True)
@@ -138,7 +137,17 @@ class Post(Document):
                 return  post.to_json()
             return False
         return False
-            
+    
+    def delete_post(self,post_id,claims):
+        if post_id:
+            post=Post.objects(id=post_id).first()
+            if post:
+                post.active=False
+                post.save()
+                return True
+            return False
+        return False
+    
     
     
     

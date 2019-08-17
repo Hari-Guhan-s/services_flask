@@ -21,7 +21,6 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 def check_if_token_in_blacklist(decrypted_token):
     connect('around')
     jti = decrypted_token['jti']
-    print(jti)
     token=TokenBlacklist()
     if token.validate_token(token=jti):
         return jsonify({'code': 401,'status': 'Token Expired'})
@@ -164,6 +163,26 @@ def view_post(post_id):
         is_valid = post.view_post(post_id,claims)
         if is_valid:
             return jsonify({'code': 200,'status': 'Success','data' :is_valid})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
+    
+@app.route('/delete',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def delete_post():
+    try:
+        post_id = request.args.get('post',False)
+        print(post_id)
+        if post_id:
+            claims = get_jwt_claims()
+            connect('around')
+            post=Post()
+            is_valid = post.delete_post(post_id,claims)
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         print(e)
