@@ -140,11 +140,10 @@ def signout():
 @cross_origin()
 def forgot_password():
     requestbody =json.loads(request.data)
-    data = requestbody['email'] or requestbody['phone']
-    if data:
+    if requestbody:
         connect('around')
         user= User()
-        if(user.forgot_password()):
+        if(user.forgot_password(requestbody)):
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     return jsonify({'code': 400,'status': 'Something went wrong.'})

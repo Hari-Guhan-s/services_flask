@@ -47,8 +47,9 @@ class User(Document):
                 return user.email
         return False
     
-    def forgot_password(self,data):
-        if data:
+    def forgot_password(self,req):
+        if req:
+            data = req.get('phone',False) or req.get('email',False)
             user =User.objects(Q(email =data ) | Q(phone= data))
             if user:
                 #forgot password login here
@@ -74,6 +75,16 @@ class User(Document):
     language=StringField(default='en/US',required=True)
     blocklist =ListField(ReferenceField('self'))
     active = BooleanField(default=True)
+
+class Profile(Document):
+    user_id = ReferenceField(User,required=True)
+    followers = ListField(ReferenceField(User))
+    follow_request = ListField(ReferenceField(User))
+    following = ListField(ReferenceField(User))
+    blocklist =ListField(ReferenceField(User))
+    
+    
+
     
 class TokenBlacklist(Document):
     
