@@ -1,5 +1,5 @@
 import uuid
-from models.model  import *
+from model  import *
 from flask import Flask,request ,redirect, url_for
 from flask_cors import CORS, cross_origin
 from flask import jsonify
