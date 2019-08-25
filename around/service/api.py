@@ -5,18 +5,18 @@ from flask_cors import CORS, cross_origin
 from flask import jsonify
 import json
 from mongoengine import *
+from flask_jwt_extended import JWTManager
 from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt,get_jwt_claims)
 from passlib.hash import pbkdf2_sha256 as sha256
 app = Flask(__name__)
 app.config['CORS_HEADERS'] = 'Content-Type'
-from flask_jwt_extended import JWTManager
 app.config['JWT_SECRET_KEY'] = 'nevergiveup'
-app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'
+app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'  
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
 jwt = JWTManager(app)
-CORS(app,resources={r"*": {"origins": "*"}})
-
+#CORS(app,resources={r"*": {"origins": "http://localhost:4200"}})
+CORS(app, resources={r"*": {"origins": "http://localhost:4200"}})
 
 @jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
@@ -53,8 +53,7 @@ def refresh_token():
         return jsonify({'code':401,'status':'Token Expired'})
 
 '''Auth services'''
-@app.route('/auth/signup',methods = ['POST'])
-@cross_origin()
+@app.route('/auth/signup/',methods = ['POST'])
 def signup():
     requestbody =json.loads(request.data)
     if(len(requestbody['password']) < 8):
@@ -76,7 +75,8 @@ def signup():
     except Exception as e:
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    
+
+          
 @app.route('/validateusername',methods = ['POST'])
 @cross_origin()
 def validate_username():
