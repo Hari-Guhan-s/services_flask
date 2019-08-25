@@ -3,8 +3,7 @@ from mongoengine.queryset.visitor import Q
 import re
 import datetime
 from passlib.hash import pbkdf2_sha256 as sha256
-from enum import Flag
-
+from random import randint
 limit = 5
 offset = 0
 
@@ -48,15 +47,34 @@ class User(Document):
                 return user.email
         return False
     
-    def forgot_password(self,req):
+    def forgot_password_otp(self,req):
         if req:
             data = req.get('phone',False) or req.get('email',False)
-            user =User.objects(Q(email =data ) | Q(phone= data))
-            if user:
-                #forgot password login here
+            user =User.objects(Q(email =data ) | Q(phone= data)).first()
+            if user and data:
+                otp = randint(100000, 999999)
+                print('otp===')
+                print(otp)
+                user.otp = sha256.hash(str(otp))
+                user.save()
                 return True
             return False
         return False
+    
+    def reset_password(self,req):
+        if req:
+            otp = req.get('otp',False)
+            data = req.get('phone',False) or req.get('email',False)
+            password = req.get('password',False)
+            user =User.objects(Q(email =data ) | Q(phone= data)).first()
+            if user and user.otp and sha256.verify(str(otp), user.otp):
+                user.password = sha256.hash(password)
+                user.otp=''
+                user.save()
+                return True
+            return False
+        return False
+            
     
     def to_json(self):
         if self.active:
@@ -73,14 +91,17 @@ class User(Document):
     last_sign_in = DateTimeField()
     language=StringField(default='en/US',required=True)
     #profile_id = ReferenceField(Profile)
+    otp = StringField() 
     active = BooleanField(default=True)
 
 class Profile(Document):
+    user = ReferenceField(User)
     followers = ListField(ReferenceField(User))
     follow_request = ListField(ReferenceField(User))
     follow_request_given =ListField(ReferenceField(User))
     following = ListField(ReferenceField(User))
     blocklist =ListField(ReferenceField(User))
+    blocked_by =ListField(ReferenceField(User))
     location  = PointField()
     profile_image = ImageField()
     
@@ -176,7 +197,11 @@ class Post(Document):
             return False
         return False
     
-    
-    
+    #===========================================================================
+    # def search_around(self,search,claims):
+    #     if search.get('search') and search.get('value'):
+    #         if search.get('search') == 'tags':    
+    #             post = 
+    #===========================================================================
     
     

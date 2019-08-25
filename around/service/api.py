@@ -65,7 +65,7 @@ def signup():
         user=User()
         is_valid=user.validate_record(requestbody['username'],requestbody['email'],requestbody['password'],requestbody['fname'],requestbody['lname'])
         if(is_valid == True):
-            user=User(password=requestbody['password'],user_name=requestbody['username'],email=requestbody['email'],first_name=requestbody['fname'],last_name=requestbody['lname'],location = requestbody.get('location',[0,0]))
+            user=User(password=requestbody['password'],user_name=requestbody['username'],email=requestbody['email'],first_name=requestbody['fname'],last_name=requestbody['lname'])
             user.save()
             access_token = create_access_token(identity = user.email)
             refresh_token = create_refresh_token(identity = user.email)
@@ -144,7 +144,19 @@ def forgot_password():
     if requestbody:
         connect('around')
         user= User()
-        if(user.forgot_password(requestbody)):
+        if(user.forgot_password_otp(requestbody)):
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    return jsonify({'code': 400,'status': 'Something went wrong.'})
+
+@app.route('/auth/reset',methods = ['POST'])
+@cross_origin()
+def reset_password():
+    requestbody =json.loads(request.data)
+    if requestbody:
+        connect('around')
+        user= User()
+        if(user.reset_password(requestbody)):
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     return jsonify({'code': 400,'status': 'Something went wrong.'})
@@ -201,8 +213,25 @@ def delete_post():
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
-'''Profile services'''
-    
+'''search services'''
+@app.route('/delete',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def search():
+    try:
+        search = request.args.get('value',False)
+        object =  request.args.get('search',False)
+        if search and object:
+            claims = get_jwt_claims()
+            connect('around')
+            post=Post()
+            is_valid = post.search_around(request.args,claims)
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Success','data':is_valid})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})    
         
     
     
