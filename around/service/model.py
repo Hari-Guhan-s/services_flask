@@ -74,9 +74,17 @@ class User(Document):
                 return True
             return False
         return False
+    
+    def check_user_session(self,claims):
+        if claims:
+            user = User.objects(id = claims.get('user_id')).first()
+            if user:
+                return True
+            return False
+        return False
             
     
-    def to_json(self):
+    def to_json(self,claims=None):
         if self.active:
             return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language}
         return {'user_name':'in_active_user','name':'Inactive User','language':'en/US'}
@@ -154,11 +162,12 @@ class Post(Document):
     hashtags = ListField()
     active = BooleanField(default=True)
     
-    def to_json(self):
+    def to_json(self,claims=None):
         likes_by=[user.to_json() for user in self.liked_by[:limit]]
         dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
         attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
-        data={'id':str(self.id),'author':self.author.to_json(),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments}
+        print(claims.get('user_id') in self.liked_by)
+        data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':True if claims and claims.get('user_id') in self.liked_by else False,'dislike':True if claims and claims.get('user_id') in self.disliked_by else False }
         return data
     
     def validate_post(self,post,claims):
@@ -181,7 +190,7 @@ class Post(Document):
         if post_id:
             post =Post.objects(id=post_id,active=True).exclude('active').first()
             if post:
-                return  post.to_json()
+                return  post.to_json(claims)
             return False
         return False
     

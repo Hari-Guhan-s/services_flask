@@ -5,18 +5,18 @@ from flask_cors import CORS, cross_origin
 from flask import jsonify
 import json
 from mongoengine import *
-from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt,get_jwt_claims)
+from flask_jwt_extended import JWTManager
+from flask_jwt_extended import (create_access_token, create_refresh_token,verify_jwt_in_request, jwt_required,jwt_optional, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt,get_jwt_claims)
 from passlib.hash import pbkdf2_sha256 as sha256
 app = Flask(__name__)
 app.config['CORS_HEADERS'] = 'Content-Type'
-from flask_jwt_extended import JWTManager
 app.config['JWT_SECRET_KEY'] = 'nevergiveup'
-app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'
+app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'  
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
 jwt = JWTManager(app)
-CORS(app,resources={r"*": {"origins": "*"}})
-
+#CORS(app,resources={r"*": {"origins": "http://localhost:4200"}})
+CORS(app, resources={r"*": {"origins": "http://localhost:4200"}})
 
 @jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
@@ -24,7 +24,7 @@ def check_if_token_in_blacklist(decrypted_token):
     jti = decrypted_token['jti']
     token=TokenBlacklist()
     if token.validate_token(token=jti):
-        return jsonify({'code': 401,'status': 'Token Expired'})
+        return jsonify({'code': 401,'status': 'Invalid'})
     
 
 @jwt.user_claims_loader
@@ -39,7 +39,7 @@ def add_claims_to_access_token(identity):
 @jwt.expired_token_loader
 def expired_token_callback(expired_token):
     #return redirect(url_for('refresh_token'))
-    return jsonify({'code': 401,'status': 'Token Expired'})
+    return jsonify({'code': 401,'status': 'Invalid'})
     
 @jwt_refresh_token_required
 @app.route('/auth',methods = ['GET'])
@@ -50,11 +50,10 @@ def refresh_token():
         access_token = create_access_token(identity = current_user)
         return jsonify({'code':200,'status':'Success','access_token': access_token})
     except:
-        return jsonify({'code':401,'status':'Token Expired'})
+        return jsonify({'code':401,'status':'Invalid'})
 
 '''Auth services'''
-@app.route('/auth/signup',methods = ['POST'])
-@cross_origin()
+@app.route('/auth/signup/',methods = ['POST'])
 def signup():
     requestbody =json.loads(request.data)
     if(len(requestbody['password']) < 8):
@@ -76,7 +75,8 @@ def signup():
     except Exception as e:
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    
+
+          
 @app.route('/validateusername',methods = ['POST'])
 @cross_origin()
 def validate_username():
@@ -107,6 +107,23 @@ def validate_email():
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
+@app.route('/auth/validate',methods = ['GET'])
+@jwt_optional
+@cross_origin()
+def validate_session():
+    claims = get_jwt_claims()
+    if claims:
+        try:
+            connect('around')
+            user=User()
+            is_valid = user.check_user_session(claims)
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Valid'}),200
+            return jsonify({'code': 400,'status': 'Invalid'}),400
+        except Exception as e:
+            print(e)
+            return jsonify({'code': 500,'status': 'Internal Server Error'})
+    return jsonify({'code': 400,'status': 'Invalid'}),400
     
 
 @app.route('/auth/signin',methods = ['POST'])
@@ -180,6 +197,7 @@ def save_post():
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 @app.route('/post/<post_id>',methods = ['GET'])
+@jwt_optional
 @cross_origin()
 def view_post(post_id):
     try:
