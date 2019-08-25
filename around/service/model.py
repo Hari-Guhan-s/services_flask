@@ -3,6 +3,7 @@ from mongoengine.queryset.visitor import Q
 import re
 import datetime
 from passlib.hash import pbkdf2_sha256 as sha256
+from enum import Flag
 
 limit = 5
 offset = 0
@@ -68,22 +69,23 @@ class User(Document):
     email = EmailField(required=True,unique= True)
     phone = StringField(unique=True,sparse=True)
     password = StringField(required=True)
-    location  = PointField()
-    profile_image = ImageField()
     joined_on = DateTimeField(default=datetime.datetime.now())
     last_sign_in = DateTimeField()
     language=StringField(default='en/US',required=True)
-    blocklist =ListField(ReferenceField('self'))
+    #profile_id = ReferenceField(Profile)
     active = BooleanField(default=True)
 
 class Profile(Document):
-    user_id = ReferenceField(User,required=True)
     followers = ListField(ReferenceField(User))
     follow_request = ListField(ReferenceField(User))
+    follow_request_given =ListField(ReferenceField(User))
     following = ListField(ReferenceField(User))
     blocklist =ListField(ReferenceField(User))
+    location  = PointField()
+    profile_image = ImageField()
     
-    
+    def follow_request(self,req,claims):
+        pass
 
     
 class TokenBlacklist(Document):
@@ -166,9 +168,11 @@ class Post(Document):
         if post_id:
             post=Post.objects(id=post_id).first()
             if post:
-                post.active=False
-                post.save()
-                return True
+                if post.author == claims.get('user_id',False):
+                    post.active=False
+                    post.save()
+                    return True
+                return False
             return False
         return False
     
