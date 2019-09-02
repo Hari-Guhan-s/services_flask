@@ -107,7 +107,7 @@ def validate_email():
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
-@app.route('/auth/validate',methods = ['GET'])
+@app.route('/auth/validate/',methods = ['GET'])
 @jwt_optional
 @cross_origin()
 def validate_session():
@@ -126,7 +126,7 @@ def validate_session():
     return jsonify({'code': 400,'status': 'Invalid'}),400
     
 
-@app.route('/auth/signin',methods = ['POST'])
+@app.route('/auth/signin/',methods = ['POST'])
 @cross_origin()
 def signin():
     requestbody =json.loads(request.data)
@@ -165,7 +165,17 @@ def forgot_password():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     return jsonify({'code': 400,'status': 'Something went wrong.'})
-
+@app.route('/auth/guard/',methods = ['POST'])
+@cross_origin()
+def auth_guard():
+    requestbody =json.loads(request.data)
+    print(requestbody,"requestbody")
+    if requestbody:
+        connect('around')
+        if(1==1):
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    return jsonify({'code': 400,'status': 'Something went wrong.'})
 @app.route('/auth/reset',methods = ['POST'])
 @cross_origin()
 def reset_password():
