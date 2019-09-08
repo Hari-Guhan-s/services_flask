@@ -3,3 +3,4 @@ flask
 passlib
 mongoengine
 Pillow
+flask_cors
