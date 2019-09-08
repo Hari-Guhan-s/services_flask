@@ -9,8 +9,12 @@ from mongoengine.connection import disconnect
 from flask_jwt_extended import JWTManager
 from flask_jwt_extended import (create_access_token, create_refresh_token,verify_jwt_in_request, jwt_required,jwt_optional, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt,get_jwt_claims)
 from passlib.hash import pbkdf2_sha256 as sha256
+from waitress import serve
 app = Flask(__name__)
-
+app.config['MONGODB_SETTINGS'] = {
+    'db': 'b4xab7lqny8ghgn',
+    'host': 'mongodb://ulcljusgealvqmvvelsy:JnIXj3aheBUmDn037Oli@b4xab7lqny8ghgn-mongodb.services.clever-cloud.com:27017/b4xab7lqny8ghgn'
+}
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['JWT_SECRET_KEY'] = 'nevergiveup'
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'  
@@ -271,8 +275,7 @@ def search():
     
 if __name__ == '__main__':
     db = MongoEngine(app)
-    app.debug = True
-    app.run(debug = True)
+    serve(app)
     
     
     
