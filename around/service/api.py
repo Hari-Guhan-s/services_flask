@@ -165,6 +165,7 @@ def forgot_password():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     return jsonify({'code': 400,'status': 'Something went wrong.'})
+    
 @app.route('/auth/guard/',methods = ['POST'])
 @cross_origin()
 def auth_guard():
@@ -189,11 +190,12 @@ def reset_password():
     return jsonify({'code': 400,'status': 'Something went wrong.'})
 
 '''Post services'''
-@app.route('/post',methods = ['POST'])
+@app.route('/post/',methods = ['POST'])
 @jwt_required
 @cross_origin()
 def save_post():
     requestbody =json.loads(request.data)
+    print(requestbody,"requestbody");
     try:
         claims = get_jwt_claims()
         connect('around')
@@ -203,7 +205,7 @@ def save_post():
             return jsonify({'code': 200,'status': 'Saved successfully','id' :is_valid})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        print(e)
+        print(e,"posttt")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 @app.route('/post/<post_id>',methods = ['GET'])
@@ -219,7 +221,7 @@ def view_post(post_id):
             return jsonify({'code': 200,'status': 'Success','data' :is_valid})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        print(e)
+        print(e,"except")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
     

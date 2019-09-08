@@ -1,0 +1,4 @@
+flask_jwt_extended
+flask
+passlib
+mongoengine
