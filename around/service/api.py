@@ -11,10 +11,7 @@ from flask_jwt_extended import (create_access_token, create_refresh_token,verify
 from passlib.hash import pbkdf2_sha256 as sha256
 from waitress import serve
 app = Flask(__name__)
-app.config['MONGODB_SETTINGS'] = {
-    'db': 'b4xab7lqny8ghgn',
-    'host': 'mongodb://ulcljusgealvqmvvelsy:JnIXj3aheBUmDn037Oli@b4xab7lqny8ghgn-mongodb.services.clever-cloud.com:27017/b4xab7lqny8ghgn'
-}
+
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['JWT_SECRET_KEY'] = 'nevergiveup'
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'  
