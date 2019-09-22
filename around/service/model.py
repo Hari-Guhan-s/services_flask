@@ -34,7 +34,7 @@ class User(Document):
     def validate_email(self,email):
         if email:
             if not re.match("[^@]+@[^@]+\.[^@]+", email):
-                return "Sorry, This looks like an invalid email address"
+                return "Sorry, Please provide a valid email address"
             if User.objects(email=email):
                 return "Sorry, This email is already registered"
             return True
