@@ -197,7 +197,7 @@ class Post(Document):
     
     def view_all_post(self,claims):
         if claims:
-            posts =Post.objects(active=True)
+            posts =Post.objects(active=True,privacy='Public')
             if posts:
                 return [post.to_json(claims) for post in posts ]
             return False
@@ -214,6 +214,49 @@ class Post(Document):
                 return False
             return False
         return False
+    
+    def like_post(self,req,claims):
+        if req.get('post') and req.get('action') and claims:
+            posts =Post.objects(active=True,id=req.get('post')).first()
+            user = User.objects(active=True,id=claims.get('user_id')).first()
+            if posts and user:
+                if req.get('action') == 1:
+                    if user not in posts.liked_by:
+                        posts.disliked_by.remove(user) if user in posts.disliked_by else False
+                        posts.liked_by.append(user.id)
+                        posts.save()
+                        return True
+                    return False
+                elif req.get('action') ==2:
+                    if user in posts.liked_by:
+                        posts.liked_by.remove(user)
+                        posts.save()
+                        return True
+                return False
+            return False
+        return False
+    
+    def dislike_post(self,req,claims):
+        if req.get('post') and req.get('action') and claims:
+            posts =Post.objects(active=True,id=req.get('post')).first()
+            user = User.objects(active=True,id=claims.get('user_id')).first()
+            if posts and user:
+                if req.get('action') == 1:
+                    if user not in posts.disliked_by:
+                        posts.liked_by.remove(user) if user in posts.liked_by else False
+                        posts.disliked_by.append(user.id)
+                        posts.save()
+                        return True
+                    return False
+                elif req.get('action') ==2:
+                    if user in posts.disliked_by:
+                        posts.disliked_by.remove(user)
+                        posts.save()
+                        return True
+                return False
+            return False
+        return False
+            
     
     #===========================================================================
     # def search_around(self,search,claims):

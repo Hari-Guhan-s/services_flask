@@ -263,6 +263,44 @@ def delete_post():
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
+'''like object services
+    req {'post' :post_id}
+'''
+@app.route('/post/like',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def like_post():
+    requestbody =json.loads(request.data)
+    try:
+        claims = get_jwt_claims()
+        connect(alias='b4xab7lqny8ghgn')
+        post=Post()
+        res = post.like_post(requestbody,claims)
+        if res:
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
+@app.route('/post/dislike',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def dislike_post():
+    requestbody =json.loads(request.data)
+    try:
+        claims = get_jwt_claims()
+        connect(alias='b4xab7lqny8ghgn')
+        post=Post()
+        res = post.dislike_post(requestbody,claims)
+        if res:
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+        
+    
 '''search services'''
 @app.route('/delete',methods = ['POST'])
 @jwt_required
