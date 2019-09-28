@@ -153,6 +153,7 @@ class Post(Document):
     mentions =ListField(ReferenceField(User))
     created_time= DateTimeField(default=datetime.datetime.now(),required=True)
     updated_time= DateTimeField(default=datetime.datetime.now())
+    topic=StringField(required=True)
     post=StringField()
     privacy= StringField(choices=CHOICES,default='Public')
     liked_by = ListField(ReferenceField(User))
@@ -168,7 +169,7 @@ class Post(Document):
         attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
         liked = True if claims and claims.get('user_id') in self.liked_by else False
         disliked = True if claims and claims.get('user_id') in self.disliked_by  else False
-        data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
+        data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
         return data
     
     def validate_post(self,post,claims):
@@ -182,7 +183,7 @@ class Post(Document):
                 u = User.objects(id=user)
                 mention.append(u)
             author = User.objects(id=claims['user_id']).first()
-            new_post =Post(author=author,post=post['post'],privacy=post.get('privacy'),hashtags=post.get('hashtags',[]),attachments=attachment,mentions=mention)
+            new_post =Post(author=author,post=post['post'],topic=post.get('topic'),privacy=post.get('privacy'),hashtags=post.get('hashtags',[]),attachments=attachment,mentions=mention)
             new_post.save()
             return str(new_post.id)
         return False
