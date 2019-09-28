@@ -213,6 +213,21 @@ def save_post():
         print(e,"posttt")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
+@app.route('/post/all/',methods = ['GET'])
+@jwt_required
+@cross_origin()
+def view_all_post():
+    try:
+        claims = get_jwt_claims()
+        connect('around')
+        post=Post()
+        is_valid = post.view_all_post(claims)
+        if is_valid:
+            return jsonify({'code': 200,'status': 'Success','posts' :is_valid})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
 @app.route('/post/<post_id>',methods = ['GET'])
 @jwt_optional
 @cross_origin()
@@ -260,7 +275,7 @@ def search():
             claims = get_jwt_claims()
             connect(alias='b4xab7lqny8ghgn')
             post=Post()
-            is_valid = post.search_b4xab7lqny8ghgn(request.args,claims)
+            is_valid = post.search_around(request.args,claims)
             if is_valid:
                 return jsonify({'code': 200,'status': 'Success','data':is_valid})
         return jsonify({'code': 400,'status': 'Something went wrong.'})

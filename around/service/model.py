@@ -77,7 +77,7 @@ class User(Document):
     
     def check_user_session(self,claims):
         if claims:
-            user = User.objects(id = claims.get('user_id')).first()
+            user = User.objects(id = claims.get('user_id'),active=True).first()
             if user:
                 return True
             return False
@@ -166,8 +166,9 @@ class Post(Document):
         likes_by=[user.to_json() for user in self.liked_by[:limit]]
         dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
         attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
-        print(claims.get('user_id') in self.liked_by)
-        data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':True if claims and claims.get('user_id') in self.liked_by else False,'dislike':True if claims and claims.get('user_id') in self.disliked_by else False }
+        liked = True if claims and claims.get('user_id') in self.liked_by else False
+        disliked = True if claims and claims.get('user_id') in self.disliked_by  else False
+        data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
         return data
     
     def validate_post(self,post,claims):
@@ -190,7 +191,15 @@ class Post(Document):
         if post_id:
             post =Post.objects(id=post_id,active=True).exclude('active').first()
             if post:
-                return  post.to_json(claims)
+                return post.to_json(claims)
+            return False
+        return False
+    
+    def view_all_post(self,claims):
+        if claims:
+            posts =Post.objects(active=True)
+            if posts:
+                return [post.to_json(claims) for post in posts ]
             return False
         return False
     
