@@ -4,6 +4,7 @@ import re
 import datetime
 from passlib.hash import pbkdf2_sha256 as sha256
 from random import randint
+from io import BytesIO
 limit = 5
 offset = 0
 
@@ -142,9 +143,16 @@ class MediaAttachment(Document):
     def to_json(self):
         return {'id':str(self.id),'file_name':self.filename,'type':self.type,'content':self.content,'size':len(self.content)}
     
-    def upload_media_attachment(self,data):
-        pass
-    
+    def upload_media_attachment(self,claims,data):
+        user= User.objects(active=True,id=claims.get('user_id')).first()
+        #implement secure file name
+        filename = data.filename
+        mem_file = BytesIO()
+        mem_file.write(data.read())
+        media = MediaAttachment(filename=filename,type=data.content_type,uploaded_by=user)
+        media.content.put(mem_file, content_type=data.content_type)
+        media.save()
+        return str(media.id)
 class Post(Document):
     
     

@@ -17,6 +17,11 @@ app.config['JWT_SECRET_KEY'] = 'nevergiveup'
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'  
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 jwt = JWTManager(app)
 #CORS(app,resources={r"*": {"origins": "http://localhost:4200"}})
@@ -302,7 +307,7 @@ def dislike_post():
         
     
 '''search services'''
-@app.route('/delete',methods = ['POST'])
+@app.route('/search',methods = ['POST'])
 @jwt_required
 @cross_origin()
 def search():
@@ -321,6 +326,29 @@ def search():
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})    
         
+'''media attachment services'''
+@app.route('/media/upload',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def media_upload():
+    try:
+        claims = get_jwt_claims()
+        if 'media' not in request.files:
+                return jsonify({'code': 400,'status': 'Something went wrong.'})
+        file = request.files['media']
+        if file.filename == '':
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        if file and allowed_file(file.filename) and claims:
+            connect(alias='b4xab7lqny8ghgn')
+            media = MediaAttachment()
+            res = media.upload_media_attachment(claims,file)
+            if res:
+                return jsonify({'code': 200,'status': 'Success','id':res})
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
     
     
 if __name__ == '__main__':
