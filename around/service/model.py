@@ -153,7 +153,7 @@ class Post(Document):
     mentions =ListField(ReferenceField(User))
     created_time= DateTimeField(default=datetime.datetime.now(),required=True)
     updated_time= DateTimeField(default=datetime.datetime.now())
-    topic=StringField(required=True)
+    topic=StringField(required=True,default='')
     post=StringField()
     privacy= StringField(choices=CHOICES,default='Public')
     liked_by = ListField(ReferenceField(User))
@@ -164,11 +164,12 @@ class Post(Document):
     active = BooleanField(default=True)
     
     def to_json(self,claims=None):
+        user= User.objects(active=True,id=claims.get('user_id')).first()
         likes_by=[user.to_json() for user in self.liked_by[:limit]]
         dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
         attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
-        liked = True if claims and claims.get('user_id') in self.liked_by else False
-        disliked = True if claims and claims.get('user_id') in self.disliked_by  else False
+        liked = True if claims and user in self.liked_by else False
+        disliked = True if claims and user in self.disliked_by  else False
         data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
         return data
     
@@ -217,23 +218,20 @@ class Post(Document):
         return False
     
     def like_post(self,req,claims):
-        if req.get('post') and req.get('action') and claims:
+        if req.get('post') and claims:
             posts =Post.objects(active=True,id=req.get('post')).first()
             user = User.objects(active=True,id=claims.get('user_id')).first()
             if posts and user:
-                if req.get('action') == 1:
-                    if user not in posts.liked_by:
-                        posts.disliked_by.remove(user) if user in posts.disliked_by else False
-                        posts.liked_by.append(user.id)
-                        posts.save()
-                        return True
-                    return False
-                elif req.get('action') ==2:
-                    if user in posts.liked_by:
-                        posts.liked_by.remove(user)
-                        posts.save()
-                        return True
-                return False
+                if user not in posts.liked_by:
+                    posts.disliked_by.remove(user) if user in posts.disliked_by else False
+                    posts.liked_by.append(user.id)
+                    posts.save()
+                    return True
+                else:
+                    posts.disliked_by.remove(user) if user in posts.disliked_by else False
+                    posts.liked_by.remove(user)
+                    posts.save()
+                    return True
             return False
         return False
     
@@ -242,18 +240,16 @@ class Post(Document):
             posts =Post.objects(active=True,id=req.get('post')).first()
             user = User.objects(active=True,id=claims.get('user_id')).first()
             if posts and user:
-                if req.get('action') == 1:
-                    if user not in posts.disliked_by:
-                        posts.liked_by.remove(user) if user in posts.liked_by else False
-                        posts.disliked_by.append(user.id)
-                        posts.save()
-                        return True
-                    return False
-                elif req.get('action') ==2:
-                    if user in posts.disliked_by:
-                        posts.disliked_by.remove(user)
-                        posts.save()
-                        return True
+                if user not in posts.disliked_by:
+                    posts.liked_by.remove(user) if user in posts.liked_by else False
+                    posts.disliked_by.append(user.id)
+                    posts.save()
+                    return True
+                else:
+                    posts.liked_by.remove(user) if user in posts.liked_by else False
+                    posts.disliked_by.remove(user)
+                    posts.save()
+                    return True
                 return False
             return False
         return False
