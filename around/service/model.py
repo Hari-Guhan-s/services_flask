@@ -244,7 +244,7 @@ class Post(Document):
         return False
     
     def dislike_post(self,req,claims):
-        if req.get('post') and req.get('action') and claims:
+        if req.get('post') and claims:
             posts =Post.objects(active=True,id=req.get('post')).first()
             user = User.objects(active=True,id=claims.get('user_id')).first()
             if posts and user:
