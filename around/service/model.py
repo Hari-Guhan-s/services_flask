@@ -5,6 +5,7 @@ import datetime
 from passlib.hash import pbkdf2_sha256 as sha256
 from random import randint
 from io import BytesIO
+import base64
 limit = 5
 offset = 0
 
@@ -135,24 +136,15 @@ class TokenBlacklist(Document):
 class MediaAttachment(Document):
     filename = StringField(required=True)
     type = StringField(required= True)
+    file_extension = StringField(required=True)
     content = FileField(required=True)
     uploaded_on = DateTimeField(required=True,default=datetime.datetime.now())
     uploaded_by = ReferenceField(User,required=True)
     active = BooleanField(default=True)
     
     def to_json(self):
-        return {'id':str(self.id),'file_name':self.filename,'type':self.type,'content':self.content,'size':len(self.content)}
+        return {'id':str(self.id),'file_name':self.filename,'type':self.type,'content':base64.b64encode(self.content),'file_extension':self.file_extension}
     
-    def upload_media_attachment(self,claims,data):
-        user= User.objects(active=True,id=claims.get('user_id')).first()
-        #implement secure file name
-        filename = data.filename
-        mem_file = BytesIO()
-        mem_file.write(data.read())
-        media = MediaAttachment(filename=filename,type=data.content_type,uploaded_by=user)
-        media.content.put(mem_file, content_type=data.content_type)
-        media.save()
-        return str(media.id)
 class Post(Document):
     
     
@@ -185,13 +177,13 @@ class Post(Document):
         if post and claims:
             attachment =[]
             mention=[]
-            for media in post.get('mention',[]):
-                m = MediaAttachment.objects(id=media)
+            author = User.objects(id=claims['user_id']).first()
+            for media in post.get('media',[]):
+                m = MediaAttachment(filename=media.file_name,file_extension=media.file_ext,type=media.file_type,content=base64.b64decode(media.data),uploaded_by=author)
                 attachment.append(m)
-            for user in post.get('media',[]):
+            for user in post.get('mention',[]):
                 u = User.objects(id=user)
                 mention.append(u)
-            author = User.objects(id=claims['user_id']).first()
             new_post =Post(author=author,post=post['post'],topic=post.get('topic'),privacy=post.get('privacy'),hashtags=post.get('hashtags',[]),attachments=attachment,mentions=mention)
             new_post.save()
             return str(new_post.id)
@@ -207,7 +199,7 @@ class Post(Document):
     
     def view_all_post(self,claims):
         if claims:
-            posts =Post.objects(active=True,privacy='Public')
+            posts =Post.objects(active=True,privacy='Public').order_by('-created_time')
             if posts:
                 return [post.to_json(claims) for post in posts ]
             return False
