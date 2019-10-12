@@ -29,7 +29,7 @@ CORS(app, resources={r"*": {"origins": "http://localhost:4200"}})
 
 @jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
-    connect('around')
+    connect(alias='around')
     jti = decrypted_token['jti']
     token=TokenBlacklist()
     if token.validate_token(token=jti):
@@ -68,7 +68,7 @@ def signup():
         return jsonify({'code': 400,'status': 'Password must be minimun 8 characters'})
     requestbody['password']= sha256.hash(requestbody['password'])   
     try:
-        connect('around')
+        connect(alias='around')
         user=User()
         is_valid=user.validate_record(requestbody['username'],requestbody['email'],requestbody['password'],requestbody['fname'],requestbody['lname'])
         if(is_valid == True):
@@ -92,7 +92,7 @@ def signup():
 def validate_username():
     requestbody =json.loads(request.data)
     try:
-        connect('around')
+        connect(alias='around')
         user=User()
         is_valid = user.validate_username(requestbody['username'])
         if(is_valid == True):
@@ -107,7 +107,7 @@ def validate_username():
 def validate_email():
     requestbody =json.loads(request.data)
     try:
-        connect('around')
+        connect(alias='around')
         user=User()
         is_valid = user.validate_email(requestbody['email'])
         if(is_valid == True):
@@ -124,7 +124,7 @@ def validate_session():
     claims = get_jwt_claims()
     if claims:
         try:
-            connect('around')
+            connect(alias='around')
             user=User()
             is_valid = user.check_user_session(claims)
             if is_valid:
@@ -141,7 +141,7 @@ def validate_session():
 def signin():
     requestbody =json.loads(request.data)
     try:
-        connect('around')
+        connect(alias='around')
         user=User()
         is_valid = user.validate_sign_in(requestbody['email'],requestbody['password'])
         if is_valid:
@@ -158,7 +158,7 @@ def signin():
 @jwt_required
 @cross_origin()
 def signout():
-    connect('around')
+    connect(alias='around')
     jti = get_raw_jwt()['jti']
     blacklist =TokenBlacklist()
     blacklist.add_to_blacklist(jti)
@@ -169,7 +169,7 @@ def signout():
 def forgot_password():
     requestbody =json.loads(request.data)
     if requestbody:
-        connect('around')
+        connect(alias='around')
         user= User()
         if(user.forgot_password_otp(requestbody)):
             return jsonify({'code': 200,'status': 'Success'})
@@ -182,7 +182,7 @@ def auth_guard():
     requestbody =json.loads(request.data)
     print(requestbody,"requestbody")
     if requestbody:
-        connect('around')
+        connect(alias='around')
         if(1==1):
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
@@ -192,7 +192,7 @@ def auth_guard():
 def reset_password():
     requestbody =json.loads(request.data)
     if requestbody:
-        connect('around')
+        connect(alias='around')
         user= User()
         if(user.reset_password(requestbody)):
             return jsonify({'code': 200,'status': 'Success'})
@@ -208,7 +208,7 @@ def save_post():
     print(requestbody,"requestbody");
     try:
         claims = get_jwt_claims()
-        connect('around')
+        connect(alias='around')
         post=Post()
         is_valid = post.validate_post(requestbody,claims)
         if is_valid:
@@ -224,13 +224,14 @@ def save_post():
 def view_all_post():
     try:
         claims = get_jwt_claims()
-        connect('around')
+        connect(alias='around')
         post=Post()
         is_valid = post.view_all_post(claims)
         if is_valid:
             return jsonify({'code': 200,'status': 'Success','posts' :is_valid})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
+        print(e,"error:")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 @app.route('/post/<post_id>',methods = ['GET'])
@@ -239,7 +240,7 @@ def view_all_post():
 def view_post(post_id):
     try:
         claims = get_jwt_claims()
-        connect('around')
+        connect(alias='around')
         post=Post()
         is_valid = post.view_post(post_id,claims)
         if is_valid:
@@ -258,7 +259,7 @@ def delete_post():
         post_id = request.args.get('post',False)
         if post_id:
             claims = get_jwt_claims()
-            connect('around')
+            connect(alias='around')
             post=Post()
             is_valid = post.delete_post(post_id,claims)
             if is_valid:
@@ -276,9 +277,10 @@ def delete_post():
 @cross_origin()
 def like_post():
     requestbody =json.loads(request.data)
+    print(requestbody)
     try:
         claims = get_jwt_claims()
-        connect('around')
+        connect(alias='around')
         post=Post()
         res = post.like_post(requestbody,claims)
         if res:
@@ -295,7 +297,7 @@ def dislike_post():
     requestbody =json.loads(request.data)
     try:
         claims = get_jwt_claims()
-        connect('around')
+        connect(alias='around')
         post=Post()
         res = post.dislike_post(requestbody,claims)
         if res:
@@ -316,7 +318,7 @@ def search():
         object =  request.args.get('search',False)
         if search and object:
             claims = get_jwt_claims()
-            connect('around')
+            connect(alias='around')
             post=Post()
             is_valid = post.search_around(request.args,claims)
             if is_valid:
@@ -328,7 +330,7 @@ def search():
     
 if __name__ == '__main__':
     db = MongoEngine(app)
-    serve(app)
+    serve(app,host='127.0.0.1', port=5000)
     
     
     
