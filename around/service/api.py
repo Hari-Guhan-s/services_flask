@@ -198,19 +198,18 @@ def reset_password():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     return jsonify({'code': 400,'status': 'Something went wrong.'})
-
+validate_post
 '''Post services'''
 @app.route('/post/',methods = ['POST'])
 @jwt_required
 @cross_origin()
 def save_post():
     requestbody =json.loads(request.data)
-    print(requestbody,"requestbody");
     try:
         claims = get_jwt_claims()
         connect(alias='around')
         post=Post()
-        is_valid = post.validate_post(requestbody,claims)
+        is_valid = post.(requestbody,claims)
         if is_valid:
             return jsonify({'code': 200,'status': 'Saved successfully','id' :is_valid})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
