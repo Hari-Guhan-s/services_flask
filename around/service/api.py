@@ -11,7 +11,7 @@ from flask_jwt_extended import (create_access_token, create_refresh_token,verify
 from passlib.hash import pbkdf2_sha256 as sha256
 from waitress import serve
 app = Flask(__name__)
-
+#hari added
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['JWT_SECRET_KEY'] = 'nevergiveup'
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'  
