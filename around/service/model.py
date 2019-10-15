@@ -143,7 +143,7 @@ class MediaAttachment(Document):
     active = BooleanField(default=True)
     
     def to_json(self):
-        return {'id':str(self.id),'file_name':self.filename,'type':self.type,'content':base64.b64encode(self.content),'file_extension':self.file_extension}
+        return {'id':str(self.id),'file_name':self.filename,'type':self.type,'data':base64.b64encode(self.content.read()),'file_extension':self.file_extension}
     
 class Post(Document):
     
@@ -178,8 +178,10 @@ class Post(Document):
             attachment =[]
             mention=[]
             author = User.objects(id=claims['user_id']).first()
-            for media in post.get('media',[]):
-                m = MediaAttachment(filename=media.file_name,file_extension=media.file_ext,type=media.file_type,content=base64.b64decode(media.data),uploaded_by=author)
+            for media in post.get('attachments',[]):
+                print(media)
+                m = MediaAttachment(filename=media.get('file_name'),file_extension=media.get('file_ext'),type=media.get('file_type'),content=base64.b64decode(media.get('data')),uploaded_by=author).save()
+                print(str(m.id))
                 attachment.append(m)
             for user in post.get('mention',[]):
                 u = User.objects(id=user)
