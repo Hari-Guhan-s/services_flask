@@ -11,7 +11,7 @@ from flask_jwt_extended import (create_access_token, create_refresh_token,verify
 from passlib.hash import pbkdf2_sha256 as sha256
 from waitress import serve
 app = Flask(__name__)
-
+#hari added
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['JWT_SECRET_KEY'] = 'nevergiveup'
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'  
@@ -211,7 +211,7 @@ def save_post():
         post=Post()
         is_valid = post.validate_post(requestbody,claims)
         if is_valid:
-            return jsonify({'code': 200,'status': 'Saved successfully','id' :is_valid})
+            return jsonify({'code': 200,'status': 'Saved successfully','data' :is_valid})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         print(e,"posttt")
