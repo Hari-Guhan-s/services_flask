@@ -211,7 +211,7 @@ def save_post():
         post=Post()
         is_valid = post.validate_post(requestbody,claims)
         if is_valid:
-            return jsonify({'code': 200,'status': 'Saved successfully','id' :is_valid})
+            return jsonify({'code': 200,'status': 'Saved successfully','data' :is_valid})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         print(e,"posttt")

@@ -187,8 +187,7 @@ class Post(Document):
                 u = User.objects(id=user)
                 mention.append(u)
             new_post =Post(author=author,post=post['post'],topic=post.get('topic'),privacy=post.get('privacy'),hashtags=post.get('hashtags',[]),attachments=attachment,mentions=mention)
-            new_post.save()
-            return str(new_post.id)
+            return new_post.save().to_json(claims)
         return False
     
     def view_post(self,post_id,claims):
