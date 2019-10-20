@@ -116,7 +116,35 @@ def validate_email():
     except Exception as e:
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    
+@app.route('/validateemailforgotpassword',methods = ['POST'])
+@cross_origin()
+def validate_forgot_password_email():
+    requestbody =json.loads(request.data)
+    try:
+        connect(alias='around')
+        user=User()
+        is_valid = user.validate_forgot_password_email(requestbody['email'])
+        if(is_valid == True):
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 400,'status': is_valid})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+
+@app.route('/validateotpupdatenewpassword',methods = ['POST'])
+@cross_origin()
+def validate_otp_update_forgot_password():
+    requestbody =json.loads(request.data)
+    try:
+        connect(alias='around')
+        user=User()
+        is_valid = user.validate_and_update_otp_new_password(requestbody)
+        if(is_valid == True):
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 400,'status': is_valid})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
 @app.route('/auth/validate/',methods = ['GET'])
 @jwt_optional
 @cross_origin()

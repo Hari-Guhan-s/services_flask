@@ -41,6 +41,17 @@ class User(Document):
                 return "Sorry, This email is already registered"
             return True
         return False
+    def validate_forgot_password_email(self,email):
+        if email:
+            if not re.match("[^@]+@[^@]+\.[^@]+", email):
+                return "Sorry, This looks like an invalid email address"
+            if User.objects(email=email):
+
+                return True
+            else:
+                return "Sorry, The email provided is not a valid user email"
+            return True
+        return False    
     
     def validate_sign_in(self,email,password):
         if email and password:
@@ -62,7 +73,24 @@ class User(Document):
                 return True
             return False
         return False
-    
+    def validate_and_update_otp_new_password(self,req):
+        if req:
+            data_otp = req.get('otp',False)
+            data_email=req.get('email',False)
+            data_phone=req.get('phone',False)
+            data_new_password=req.get('new_password',False)
+            user =User.objects(Q(otp =data_otp ) & (Q(phone= data_phone) | Q(email= data_email)) ).first()
+            if User.objects(Q(password =data_new_password ) & (Q(phone= data_phone) | Q(email= data_email)) ):
+                return "New password should not be equivalent to old password"
+            elif user and data:
+                user.password=data_new_password
+                user.save()
+                return True
+            else:
+                return False
+        return False 
+
+
     def reset_password(self,req):
         if req:
             otp = req.get('otp',False)
