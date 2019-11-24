@@ -4,6 +4,7 @@ from flask import Flask,request ,redirect, url_for
 from flask_cors import CORS, cross_origin
 from flask import jsonify
 import json
+import traceback
 from flask_mongoengine import MongoEngine
 from mongoengine.connection import disconnect
 from flask_jwt_extended import JWTManager
@@ -214,7 +215,6 @@ def save_post():
             return jsonify({'code': 200,'status': 'Saved successfully','data' :is_valid})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        print(e,"posttt")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 @app.route('/post/all/',methods = ['GET'])
@@ -308,21 +308,18 @@ def dislike_post():
         
     
 '''search services'''
-@app.route('/search',methods = ['POST'])
+@app.route('/search',methods = ['GET'])
 @jwt_required
 @cross_origin()
 def search():
     try:
-        search = request.args.get('value',False)
-        object =  request.args.get('search',False)
-        if search and object:
-            claims = get_jwt_claims()
-            connect(alias='around')
-            post=Post()
-            is_valid = post.search_around(request.args,claims)
-            if is_valid:
-                return jsonify({'code': 200,'status': 'Success','data':is_valid})
-        return jsonify({'code': 400,'status': 'Something went wrong.'})
+        requestbody =json.loads(request.data)
+        print(requestbody)
+        claims = get_jwt_claims()
+        connect(alias='around')
+        user=User()
+        is_valid = user.search(requestbody,claims)
+        return jsonify({'code': 200,'status': 'Success','data':is_valid})
     except Exception as e:
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})    

@@ -6,6 +6,7 @@ from passlib.hash import pbkdf2_sha256 as sha256
 from random import randint
 from io import BytesIO
 import base64
+import traceback
 limit = 5
 offset = 0
 
@@ -90,6 +91,15 @@ class User(Document):
         if self.active:
             return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language}
         return {'user_name':'in_active_user','name':'Inactive User','language':'en/US'}
+    
+    def search(self,search,claims):
+        if search.get('search') and claims:
+            value = search.get('search')
+            user =  claims.get('user_id')
+            results = User.objects((Q(email =value ) or Q(phone= value) or Q(user_name__icontains =value ) or Q(first_name__istartswith =value )) and Q(active=True))
+            print(results)
+            return [res.to_json(claims) for res in results  ]
+        return False
     
     first_name = StringField(max_length=200, required=True)
     last_name = StringField(max_length=200, required=True)
@@ -253,14 +263,4 @@ class Post(Document):
                     return True
                 return False
             return False
-        return False
-            
-    
-    #===========================================================================
-    # def search_around(self,search,claims):
-    #     if search.get('search') and search.get('value'):
-    #         if search.get('search') == 'tags':    
-    #             post = 
-    #===========================================================================
-    
-    
+        return False    
