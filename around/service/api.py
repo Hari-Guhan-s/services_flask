@@ -315,7 +315,6 @@ def dislike_post():
 def search():
     try:
         requestbody =json.loads(request.data)
-        print(requestbody)
         claims = get_jwt_claims()
         connect(alias='around')
         user=User()
@@ -327,7 +326,7 @@ def search():
     
 if __name__ == '__main__':
     db = MongoEngine(app)
-    serve(app,host='127.0.0.1', port=5000)
+    serve(app,host='127.0.0.1', port=8000)
     
     
     

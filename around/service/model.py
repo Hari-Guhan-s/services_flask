@@ -96,8 +96,7 @@ class User(Document):
         if search.get('search') and claims:
             value = search.get('search')
             user =  claims.get('user_id')
-            results = User.objects((Q(email =value ) or Q(phone= value) or Q(user_name__icontains =value ) or Q(first_name__istartswith =value )) and Q(active=True))
-            print(results)
+            results = User.objects[:5].filter((Q(email =value) | Q(phone = value) | Q(user_name__istartswith = value) | Q(first_name__istartswith = value)) & Q(active = True))
             return [res.to_json(claims) for res in results  ]
         return False
     
