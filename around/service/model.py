@@ -101,6 +101,11 @@ class User(Document):
             return [res.to_json(claims) for res in results  ]
         return False
     
+    def get_user(self,claims):
+        if claims:
+            return User.objects(id = claims.get('user_id'),active=True).first()
+        return False
+    
     first_name = StringField(max_length=200, required=True)
     last_name = StringField(max_length=200, required=True)
     user_name =StringField()
@@ -189,7 +194,6 @@ class Post(Document):
             mention=[]
             author = User.objects(id=claims['user_id']).first()
             for media in post.get('attachments',[]):
-                print(media)
                 m = MediaAttachment(filename=media.get('file_name'),file_extension=media.get('file_ext'),type=media.get('file_type'),content=base64.b64decode(media.get('data')),uploaded_by=author).save()
                 print(str(m.id))
                 attachment.append(m)
@@ -218,9 +222,9 @@ class Post(Document):
     
     def delete_post(self,post_id,claims):
         if post_id:
-            post=Post.objects(id=post_id).first()
+            post=Post.objects(id=post_id,active=True).first()
             if post:
-                if post.author == claims.get('user_id',False):
+                if post.author == User.get_user(self,claims=claims):
                     post.active=False
                     post.save()
                     return True
@@ -230,8 +234,9 @@ class Post(Document):
     
     def like_post(self,req,claims):
         if req.get('post') and claims:
-            posts =Post.objects(active=True,id=req.get('post')).first()
-            user = User.objects(active=True,id=claims.get('user_id')).first()
+            post_id =req.get('post')
+            posts =Post.objects(id=post_id,active=True).first()
+            user = User.get_user(self,claims=claims)
             if posts and user:
                 if user not in posts.liked_by:
                     posts.disliked_by.remove(user) if user in posts.disliked_by else False

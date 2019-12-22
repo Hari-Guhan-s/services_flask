@@ -66,7 +66,7 @@ def refresh_token():
 def signup():
     requestbody =json.loads(request.data)
     if(len(requestbody['password']) < 8):
-        return jsonify({'code': 400,'status': 'Password must be minimun 8 characters'})
+        return jsonify({'code': 400,'status': 'Password must be minimum 8 characters'})
     requestbody['password']= sha256.hash(requestbody['password'])   
     try:
         connect(alias='around')
@@ -197,7 +197,7 @@ def reset_password():
         user= User()
         if(user.reset_password(requestbody)):
             return jsonify({'code': 200,'status': 'Success'})
-        return jsonify({'code': 400,'status': 'Something went wrong.'})
+        return jsonify({'code': 400,'status': 'Incorrect OTP.'})
     return jsonify({'code': 400,'status': 'Something went wrong.'})
 
 '''Post services'''
@@ -228,7 +228,7 @@ def view_all_post():
         is_valid = post.view_all_post(claims)
         if is_valid:
             return jsonify({'code': 200,'status': 'Success','posts' :is_valid})
-        return jsonify({'code': 400,'status': 'Something went wrong.'})
+        return jsonify({'code': 400,'status': 'No Posts','posts':[]})
     except Exception as e:
         print(e,"error:")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
@@ -250,7 +250,7 @@ def view_post(post_id):
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
     
-@app.route('/delete',methods = ['POST'])
+@app.route('/post/delete',methods = ['POST'])
 @jwt_required
 @cross_origin()
 def delete_post():
@@ -263,6 +263,7 @@ def delete_post():
             is_valid = post.delete_post(post_id,claims)
             if is_valid:
                 return jsonify({'code': 200,'status': 'Success'})
+            return jsonify({'code': 400,'status': 'Post already deleted'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         print(e)
@@ -308,7 +309,7 @@ def dislike_post():
         
     
 '''search services'''
-@app.route('/search',methods = ['GET'])
+@app.route('/search',methods = ['POST'])
 @jwt_required
 @cross_origin()
 def search():
@@ -322,7 +323,7 @@ def search():
         return jsonify({'code': 200,'status': 'Success','data':is_valid})
     except Exception as e:
         print(e)
-        return jsonify({'code': 500,'status': 'Internal Server Error'})    
+        return jsonify({'code': 500,'status': 'Something went wrong'})    
     
 if __name__ == '__main__':
     db = MongoEngine(app)
