@@ -7,6 +7,7 @@ from random import randint
 from io import BytesIO
 import base64
 import traceback
+from PIL import Image
 limit = 5
 offset = 0
 
@@ -88,8 +89,9 @@ class User(Document):
             
     
     def to_json(self,claims=None):
+        profile = Profile.objects(user= self).first()
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'prifile_image':base64.b64encode(profile.profile_image_orginal.read())}
         return {'user_name':'in_active_user','name':'Inactive User','language':'en/US'}
     
     def search(self,search,claims):
@@ -127,11 +129,27 @@ class Profile(Document):
     blocklist =ListField(ReferenceField(User))
     blocked_by =ListField(ReferenceField(User))
     location  = PointField()
-    profile_image = ImageField()
+    profile_image_orginal = FileField()
+    profile_image_small = FileField()
     
     def follow_request(self,req,claims):
         pass
 
+    def upload_image(self,req,claims):
+        if req and claims and req.get('data'):
+            author = User.objects(id=claims.get('user_id')).first()
+            profile = Profile.objects(user= author).first()
+            if not profile:
+                profile = Profile(user=author).save()
+            #im = Image.open(BytesIO(base64.b64decode(req.get('data'))))
+            #imgByteArrThumbnail = BytesIO()
+            #im.resize((int(im.size[0]/.2),int(im.size[1]/.2)),3).save(imgByteArrThumbnail,'PNG')
+            #print(base64.b64encode(imgByteArrThumbnail.getvalue()))
+            profile.profile_image_orginal=base64.b64decode(req.get('data'))
+            #profile.profile_image_small=imgByteArrThumbnail.getvalue()
+            profile.save()
+            return {'code':200,'status':'Profile image uploaded successfully.'}
+        return False
     
 class TokenBlacklist(Document):
     

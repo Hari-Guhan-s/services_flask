@@ -322,11 +322,31 @@ def search():
         return jsonify({'code': 200,'status': 'Success','data':is_valid})
     except Exception as e:
         print(e)
-        return jsonify({'code': 500,'status': 'Something went wrong'})    
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+
+'''Profile services'''
+@app.route('/profile/upload',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def profile_upload():
+    try:
+        requestbody =json.loads(request.data)
+        claims = get_jwt_claims()
+        connect(alias='around')
+        profile=Profile()
+        is_valid = profile.upload_image(requestbody,claims)
+        if is_valid:
+            return jsonify(is_valid)
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+
+
     
 if __name__ == '__main__':
     db = MongoEngine(app)
-    serve(app,host='127.0.0.1', port=8000)
+    serve(app,host='127.0.0.1', port=5000)
     
     
     
