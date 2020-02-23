@@ -91,8 +91,8 @@ class User(Document):
     def to_json(self,claims=None):
         profile = Profile.objects(user= self).first()
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'prifile_image':base64.b64encode(profile.profile_image_orginal.read())}
-        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US'}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':base64.b64encode(profile.profile_image_orginal.read()) if profile.profile_image_orginal else ''}
+        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':''}
     
     def search(self,search,claims):
         if search.get('search') and claims:

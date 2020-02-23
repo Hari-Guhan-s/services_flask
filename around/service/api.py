@@ -73,17 +73,18 @@ def signup():
         user=User()
         is_valid=user.validate_record(requestbody['username'],requestbody['email'],requestbody['password'],requestbody['fname'],requestbody['lname'])
         if(is_valid == True):
-            user=User(password=requestbody['password'],user_name=requestbody['username'],email=requestbody['email'],first_name=requestbody['fname'],last_name=requestbody['lname'])
-            user.save()
-            access_token = create_access_token(identity = user.email)
-            refresh_token = create_refresh_token(identity = user.email)
+            new_user=User(password=requestbody['password'],user_name=requestbody['username'],email=requestbody['email'],first_name=requestbody['fname'],last_name=requestbody['lname'])
+            new_user.save()
+            profile =  Profile(user= new_user)
+            profile.save()
+            access_token = create_access_token(identity = new_user.email)
+            refresh_token = create_refresh_token(identity = new_user.email)
             return jsonify({'code': 200,'status': 'Success','access-token':access_token,'refresh-token':refresh_token})
         else:
             error = is_valid
             return jsonify({'code': 400,'status': error})
             disconnect(alias='around')
     except Exception as e:
-        print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
         disconnect(alias='around')
 
@@ -255,7 +256,7 @@ def view_post(post_id):
 @cross_origin()
 def delete_post():
     try:
-        post_id = request.args.get('post',False)
+        post_id = json.loads(request.data).get('post',False)
         if post_id:
             claims = get_jwt_claims()
             connect(alias='around')
