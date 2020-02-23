@@ -305,7 +305,22 @@ def dislike_post():
     except Exception as e:
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-        
+
+@app.route('/hashtag/<tag>',methods = ['GET'])
+@jwt_required
+@cross_origin()
+def get_hashtag(tag):
+    try:
+        claims = get_jwt_claims()
+        connect(alias='around')
+        post=Post()
+        res = post.get_post_hashtag(tag,claims)
+        if res:
+            return jsonify({'code': 200,'status': 'Success','data':res})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(traceback.print_exc())
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 '''search services'''
 @app.route('/search',methods = ['POST'])
@@ -392,6 +407,7 @@ def dislike_comment():
     except Exception as e:
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
+
     
 if __name__ == '__main__':
     db = MongoEngine(app)

@@ -149,7 +149,7 @@ def test_post_services():
     response = app.test_client().post(
         '/post/',
         data=json.dumps({
-            "post": "This is the post content 2 #new_tag",
+            "post": "This is the post content 2 #best",
             "topic": "this is the title 2",
             "privacy": "Public",
             "attachments": [
@@ -222,6 +222,20 @@ def test_post_services():
         print('Validate Dislike Post : OK' )
     except AssertionError:
         print('Validate Dislike Post : FAIL')
+
+    'Validate Hashtag'
+    response = app.test_client().get(
+        '/hashtag/best',
+        headers={"content_type":"application/json","Authorization":"Bearer "+str(auth_token)},
+    )
+    data = json.loads(response.get_data(as_text=True))
+    try:
+        assert data.get('code') == 200
+        print('Validate Hashtag : OK' )
+    except AssertionError:
+        print('Validate Hashtag : FAIL')
+    except Exception:
+        print(traceback.print_exc())
 
 def test_misc_services():
     'Validate Search'
@@ -313,9 +327,6 @@ def test_comment_services():
         print('Validate Dislike Comment : OK' )
     except AssertionError:
         print('Validate Dislike Comment : FAIL')
-
-    
-
 
 def test_remove_post():
     'Validate Delete Post'

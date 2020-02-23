@@ -251,7 +251,7 @@ class Comment(Document):
                 for user in req.get('mention',[]):
                     u = User.objects(id=user)
                     mention.append(u)
-                comment = Comment(comment=req.get('comment'),user= user,attachments=attachment,mentions=mention)
+                comment = Comment(comment=req.get('comment'),user= user,attachments=attachment,mentions=mention,hashtags = re.findall(r"#(\w+)",req.get('comment')))
                 comment.save()
                 post.comments.append(comment)
                 post.save()
@@ -382,4 +382,10 @@ class Post(Document):
                     return True
                 return False
             return False
+        return False
+
+    def get_post_hashtag(self,tag,claims):
+        if tag and claims:
+            posts =Post.objects(active=True,hashtags=tag)
+            return [post.to_json(claims) for post in posts]
         return False
