@@ -8,6 +8,7 @@ from io import BytesIO
 import base64
 import traceback
 from PIL import Image
+import re
 limit = 5
 offset = 0
 
@@ -259,14 +260,15 @@ class Comment(Document):
         return False
 
     def to_json(self,claims):
-        user= User.get_user(self,claims=claims)
-        likes_by=[user.to_json() for user in self.liked_by[:limit]]
-        dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
-        attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
-        liked = True if claims and user in self.liked_by else False
-        disliked = True if claims and user in self.disliked_by  else False
-        data={'id':str(self.id),'author':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'comment':self.comment,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
-        return data
+        if self.active:
+            user= User.get_user(self,claims=claims)
+            likes_by=[user.to_json() for user in self.liked_by[:limit]]
+            dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
+            attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
+            liked = True if claims and user in self.liked_by else False
+            disliked = True if claims and user in self.disliked_by  else False
+            data={'id':str(self.id),'author':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'comment':self.comment,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
+            return data
 
 
 class Post(Document):
@@ -289,15 +291,16 @@ class Post(Document):
     comments = ListField(ReferenceField(Comment))
     
     def to_json(self,claims=None):
-        user= User.objects(active=True,id=claims.get('user_id')).first()
-        likes_by=[user.to_json() for user in self.liked_by[:limit]]
-        dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
-        attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
-        comments=[comment.to_json(claims)for comment in self.comments[:limit]]
-        liked = True if claims and user in self.liked_by else False
-        disliked = True if claims and user in self.disliked_by  else False
-        data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments}
-        return data
+        if self.active:
+            user= User.objects(active=True,id=claims.get('user_id')).first()
+            likes_by=[user.to_json() for user in self.liked_by[:limit]]
+            dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
+            attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
+            comments=[comment.to_json(claims)for comment in self.comments[:limit]]
+            liked = True if claims and user in self.liked_by else False
+            disliked = True if claims and user in self.disliked_by  else False
+            data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments}
+            return data
     
     def validate_post(self,post,claims):
         if post and claims:
@@ -310,7 +313,8 @@ class Post(Document):
             for user in post.get('mention',[]):
                 u = User.objects(id=user)
                 mention.append(u)
-            new_post =Post(author=author,post=post['post'],topic=post.get('topic'),privacy=post.get('privacy'),hashtags=post.get('hashtags',[]),attachments=attachment,mentions=mention)
+            
+            new_post =Post(author=author,post=post['post'],topic=post.get('topic'),privacy=post.get('privacy'),attachments=attachment,mentions=mention,hashtags=re.findall(r"#(\w+)", post.get('post')))
             return new_post.save().to_json(claims)
         return False
     

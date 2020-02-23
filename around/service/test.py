@@ -149,7 +149,7 @@ def test_post_services():
     response = app.test_client().post(
         '/post/',
         data=json.dumps({
-            "post": "This is the post content 2",
+            "post": "This is the post content 2 #new_tag",
             "topic": "this is the title 2",
             "privacy": "Public",
             "attachments": [
@@ -265,6 +265,7 @@ def test_sign_up_services(username,email):
         print('Validate Sign Up : FAIL')    
 
 def test_comment_services():
+    print('===== Testing Comment Services ======')
     'Validate Create Comment'
     response = app.test_client().post(
         '/comment/create',
