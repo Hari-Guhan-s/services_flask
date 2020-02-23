@@ -12,6 +12,7 @@ img_file =''
 test_email =''
 test_password =''
 test_user_name =''
+comment_id=''
 
 def test_auth_services():
     print('=== Testing Auth Services ====')
@@ -222,21 +223,6 @@ def test_post_services():
     except AssertionError:
         print('Validate Dislike Post : FAIL')
 
-    'Validate Delete Post'
-    response = app.test_client().post(
-        '/post/delete',
-        data = json.dumps({
-            "post":post_id
-        }),
-        headers={"content_type":"application/json","Authorization":"Bearer "+str(auth_token)},
-    )
-    data = json.loads(response.get_data(as_text=True))    
-    try:
-        assert data.get('code') == 200
-        print('Validate Delete Post : OK' )
-    except AssertionError:
-        print('Validate Delete Post : FAIL')    
-
 def test_misc_services():
     'Validate Search'
     response = app.test_client().post(
@@ -278,6 +264,74 @@ def test_sign_up_services(username,email):
     except AssertionError:
         print('Validate Sign Up : FAIL')    
 
+def test_comment_services():
+    'Validate Create Comment'
+    response = app.test_client().post(
+        '/comment/create',
+        data = json.dumps({
+            "post_id":post_id,
+            "comment":"This is a test comment"
+        }),
+        headers={"content_type":"application/json","Authorization":"Bearer "+str(auth_token)},
+    )
+    data = json.loads(response.get_data(as_text=True))    
+    try:
+        assert data.get('code') == 200
+        global comment_id
+        comment_id =data.get('comment_id')
+        print('Validate Create Comment : OK' )
+    except AssertionError:
+        print('Validate Create Comment : FAIL')
+
+    'Validate Like Comment'
+    response = app.test_client().post(
+        '/comment/like',
+        data = json.dumps({
+            "comment":comment_id
+        }),
+        headers={"content_type":"application/json","Authorization":"Bearer "+str(auth_token)},
+    )
+    data = json.loads(response.get_data(as_text=True))    
+    try:
+        assert data.get('code') == 200
+        print('Validate Like Comment : OK' )
+    except AssertionError:
+        print('Validate Like Comment : FAIL')
+
+    'Validate Dislike Comment'
+    response = app.test_client().post(
+        '/comment/dislike',
+        data = json.dumps({
+            "comment":comment_id
+        }),
+        headers={"content_type":"application/json","Authorization":"Bearer "+str(auth_token)},
+    )
+    data = json.loads(response.get_data(as_text=True))    
+    try:
+        assert data.get('code') == 200
+        print('Validate Dislike Comment : OK' )
+    except AssertionError:
+        print('Validate Dislike Comment : FAIL')
+
+    
+
+
+def test_remove_post():
+    'Validate Delete Post'
+    response = app.test_client().post(
+        '/post/delete',
+        data = json.dumps({
+            "post":post_id
+        }),
+        headers={"content_type":"application/json","Authorization":"Bearer "+str(auth_token)},
+    )
+    data = json.loads(response.get_data(as_text=True))    
+    try:
+        assert data.get('code') == 200
+        print('Validate Delete Post : OK' )
+    except AssertionError:
+        print('Validate Delete Post : FAIL')    
+
 def get_base64_image_file(file_name):
     path='/home/joyalbaby/git commit/services_flask/around/service/'
     with open(path+file_name, "rb") as file:
@@ -290,17 +344,23 @@ if __name__ == '__main__':
     test_auth_services()
     test_sign_in('joyalbaby@outlook.com','joyalbaby0675')
     test_post_services()
+    test_comment_services()
     test_misc_services()
+    test_remove_post()
     test_sign_out()
     print('========= Testing Invalid Session ==========')
     test_post_services()
+    test_comment_services()
     test_misc_services()
+    test_remove_post()
     test_sign_out()
     test_sign_up_services('joyalbaby2011','joyalbaby@outlook.com')
     test_sign_in(test_email,test_password)
     print('======== Testing new user Session =========')
     test_post_services()
+    test_comment_services()
     test_misc_services()
+    #test_remove_post()
     test_sign_out()
     print('=== Test Completed ===')
     

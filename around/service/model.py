@@ -116,7 +116,6 @@ class User(Document):
     joined_on = DateTimeField(default=datetime.datetime.now())
     last_sign_in = DateTimeField()
     language=StringField(default='en/US',required=True)
-    #profile_id = ReferenceField(Profile)
     otp = StringField() 
     active = BooleanField(default=True)
 
@@ -176,7 +175,100 @@ class MediaAttachment(Document):
     
     def to_json(self):
         return {'id':str(self.id),'file_name':self.filename,'type':self.type,'data':base64.b64encode(self.content.read()),'file_extension':self.file_extension}
+
+class Comment(Document):
+    user = ReferenceField(User,required=True)
+    mentions =ListField(ReferenceField(User))
+    created_time= DateTimeField(default=datetime.datetime.now(),required=True)
+    updated_time= DateTimeField(default=datetime.datetime.now())
+    comment=StringField(required=True,default='')
+    liked_by = ListField(ReferenceField(User))
+    disliked_by = ListField(ReferenceField(User))
+    attachments = ListField(ReferenceField(MediaAttachment))
+    hashtags = ListField()
+    active = BooleanField(default=True)
+
+    def delete_comment(self,comment_id,claims):
+        if comment_id:
+            user = User.get_user(self,claims=claims)
+            comment=Comment.objects(id=comment_id,active=True,user = user).first()
+            if comment:
+                    comment.active=False
+                    comment.save()
+                    return True
+            return False
+        return False
     
+    def like_comment(self,req,claims):
+        if req.get('comment') and claims:
+            commment_id =req.get('comment')
+            comment =Comment.objects(id=commment_id,active=True).first()
+            user = User.get_user(self,claims=claims)
+            if comment and user:
+                if user not in comment.liked_by:
+                    comment.disliked_by.remove(user) if user in comment.disliked_by else False
+                    comment.liked_by.append(user.id)
+                    comment.save()
+                    return True
+                else:
+                    comment.disliked_by.remove(user) if user in comment.disliked_by else False
+                    comment.liked_by.remove(user)
+                    comment.save()
+                    return True
+            return False
+        return False
+    
+    def dislike_comment(self,req,claims):
+        if req.get('comment') and claims:
+            comment =Comment.objects(active=True,id=req.get('comment')).first()
+            user = User.get_user(self,claims=claims)
+            if comment and user:
+                if user not in comment.disliked_by:
+                    comment.liked_by.remove(user) if user in comment.liked_by else False
+                    comment.disliked_by.append(user.id)
+                    comment.save()
+                    return True
+                else:
+                    comment.liked_by.remove(user) if user in comment.liked_by else False
+                    comment.disliked_by.remove(user)
+                    comment.save()
+                    return True
+                return False
+            return False
+        return False
+
+    def add_comment(self,req,claims):
+        if req.get('comment') and req.get('post_id') and claims:
+            attachment =[]
+            mention=[]
+            user = User.get_user(self,claims=claims)
+            post = Post.objects(active=True,id=req.get('post_id')).first()
+            if user and post:
+                for media in req.get('attachments',[]):
+                    m = MediaAttachment(filename=media.get('file_name'),file_extension=media.get('file_ext'),type=media.get('file_type'),content=base64.b64decode(media.get('data')),uploaded_by=author).save()
+                    attachment.append(m)
+                for user in req.get('mention',[]):
+                    u = User.objects(id=user)
+                    mention.append(u)
+                comment = Comment(comment=req.get('comment'),user= user,attachments=attachment,mentions=mention)
+                comment.save()
+                post.comments.append(comment)
+                post.save()
+                return {"code":200,"status":"Success","comment_id":str(comment.id)}
+            return False
+        return False
+
+    def to_json(self,claims):
+        user= User.get_user(self,claims=claims)
+        likes_by=[user.to_json() for user in self.liked_by[:limit]]
+        dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
+        attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
+        liked = True if claims and user in self.liked_by else False
+        disliked = True if claims and user in self.disliked_by  else False
+        data={'id':str(self.id),'author':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'comment':self.comment,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
+        return data
+
+
 class Post(Document):
     
     
@@ -194,15 +286,17 @@ class Post(Document):
     attachments = ListField(ReferenceField(MediaAttachment))
     hashtags = ListField()
     active = BooleanField(default=True)
+    comments = ListField(ReferenceField(Comment))
     
     def to_json(self,claims=None):
         user= User.objects(active=True,id=claims.get('user_id')).first()
         likes_by=[user.to_json() for user in self.liked_by[:limit]]
         dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
         attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
+        comments=[comment.to_json(claims)for comment in self.comments[:limit]]
         liked = True if claims and user in self.liked_by else False
         disliked = True if claims and user in self.disliked_by  else False
-        data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
+        data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments}
         return data
     
     def validate_post(self,post,claims):
@@ -212,7 +306,6 @@ class Post(Document):
             author = User.objects(id=claims['user_id']).first()
             for media in post.get('attachments',[]):
                 m = MediaAttachment(filename=media.get('file_name'),file_extension=media.get('file_ext'),type=media.get('file_type'),content=base64.b64decode(media.get('data')),uploaded_by=author).save()
-                print(str(m.id))
                 attachment.append(m)
             for user in post.get('mention',[]):
                 u = User.objects(id=user)
@@ -285,4 +378,4 @@ class Post(Document):
                     return True
                 return False
             return False
-        return False    
+        return False

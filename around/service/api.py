@@ -182,7 +182,6 @@ def forgot_password():
 @cross_origin()
 def auth_guard():
     requestbody =json.loads(request.data)
-    print(requestbody,"requestbody")
     if requestbody:
         connect(alias='around')
         if(1==1):
@@ -278,7 +277,6 @@ def delete_post():
 @cross_origin()
 def like_post():
     requestbody =json.loads(request.data)
-    print(requestbody)
     try:
         claims = get_jwt_claims()
         connect(alias='around')
@@ -343,7 +341,57 @@ def profile_upload():
         print(e)
         return jsonify({'code': 500,'status': 'Something went wrong'})
 
+'''Comment Service'''
+@app.route('/comment/create',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def add_comment():
+    try:
+        requestbody =json.loads(request.data)
+        claims = get_jwt_claims()
+        connect(alias='around')
+        comment=Comment()
+        is_valid = comment.add_comment(requestbody,claims)
+        if is_valid:
+            return jsonify(is_valid)
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Something went wrong'})
 
+@app.route('/comment/like',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def like_comment():
+    requestbody =json.loads(request.data)
+    try:
+        claims = get_jwt_claims()
+        connect(alias='around')
+        comment=Comment()
+        res = comment.like_comment(requestbody,claims)
+        if res:
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
+@app.route('/comment/dislike',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def dislike_comment():
+    requestbody =json.loads(request.data)
+    try:
+        claims = get_jwt_claims()
+        connect(alias='around')
+        comment=Comment()
+        res = comment.dislike_comment(requestbody,claims)
+        if res:
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 if __name__ == '__main__':
     db = MongoEngine(app)
