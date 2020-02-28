@@ -4,6 +4,7 @@ from flask import Flask,request ,redirect, url_for
 from flask_cors import CORS, cross_origin
 from flask import jsonify
 import json
+import traceback
 from flask_mongoengine import MongoEngine
 from mongoengine.connection import disconnect
 from flask_jwt_extended import JWTManager
@@ -65,24 +66,25 @@ def refresh_token():
 def signup():
     requestbody =json.loads(request.data)
     if(len(requestbody['password']) < 8):
-        return jsonify({'code': 400,'status': 'Password must be minimun 8 characters'})
+        return jsonify({'code': 400,'status': 'Password must be minimum 8 characters'})
     requestbody['password']= sha256.hash(requestbody['password'])   
     try:
         connect(alias='around')
         user=User()
         is_valid=user.validate_record(requestbody['username'],requestbody['email'],requestbody['password'],requestbody['fname'],requestbody['lname'])
         if(is_valid == True):
-            user=User(password=requestbody['password'],user_name=requestbody['username'],email=requestbody['email'],first_name=requestbody['fname'],last_name=requestbody['lname'])
-            user.save()
-            access_token = create_access_token(identity = user.email)
-            refresh_token = create_refresh_token(identity = user.email)
+            new_user=User(password=requestbody['password'],user_name=requestbody['username'],email=requestbody['email'],first_name=requestbody['fname'],last_name=requestbody['lname'])
+            new_user.save()
+            profile =  Profile(user= new_user)
+            profile.save()
+            access_token = create_access_token(identity = new_user.email)
+            refresh_token = create_refresh_token(identity = new_user.email)
             return jsonify({'code': 200,'status': 'Success','access-token':access_token,'refresh-token':refresh_token})
         else:
             error = is_valid
             return jsonify({'code': 400,'status': error})
             disconnect(alias='around')
     except Exception as e:
-        print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
         disconnect(alias='around')
 
@@ -208,7 +210,6 @@ def forgot_password():
 @cross_origin()
 def auth_guard():
     requestbody =json.loads(request.data)
-    print(requestbody,"requestbody")
     if requestbody:
         connect(alias='around')
         if(1==1):
@@ -224,7 +225,7 @@ def reset_password():
         user= User()
         if(user.reset_password(requestbody)):
             return jsonify({'code': 200,'status': 'Success'})
-        return jsonify({'code': 400,'status': 'Something went wrong.'})
+        return jsonify({'code': 400,'status': 'Incorrect OTP.'})
     return jsonify({'code': 400,'status': 'Something went wrong.'})
 
 '''Post services'''
@@ -242,7 +243,6 @@ def save_post():
             return jsonify({'code': 200,'status': 'Saved successfully','data' :is_valid})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        print(e,"posttt")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 @app.route('/post/all/',methods = ['GET'])
@@ -256,7 +256,7 @@ def view_all_post():
         is_valid = post.view_all_post(claims)
         if is_valid:
             return jsonify({'code': 200,'status': 'Success','posts' :is_valid})
-        return jsonify({'code': 400,'status': 'Something went wrong.'})
+        return jsonify({'code': 400,'status': 'No Posts','posts':[]})
     except Exception as e:
         print(e,"error:")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
@@ -278,12 +278,12 @@ def view_post(post_id):
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
     
-@app.route('/delete',methods = ['POST'])
+@app.route('/post/delete',methods = ['POST'])
 @jwt_required
 @cross_origin()
 def delete_post():
     try:
-        post_id = request.args.get('post',False)
+        post_id = json.loads(request.data).get('post',False)
         if post_id:
             claims = get_jwt_claims()
             connect(alias='around')
@@ -291,6 +291,7 @@ def delete_post():
             is_valid = post.delete_post(post_id,claims)
             if is_valid:
                 return jsonify({'code': 200,'status': 'Success'})
+            return jsonify({'code': 400,'status': 'Post already deleted'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         print(e)
@@ -304,7 +305,6 @@ def delete_post():
 @cross_origin()
 def like_post():
     requestbody =json.loads(request.data)
-    print(requestbody)
     try:
         claims = get_jwt_claims()
         connect(alias='around')
@@ -341,19 +341,85 @@ def dislike_post():
 @cross_origin()
 def search():
     try:
-        search = request.args.get('value',False)
-        object =  request.args.get('search',False)
-        if search and object:
-            claims = get_jwt_claims()
-            connect(alias='around')
-            post=Post()
-            is_valid = post.search_around(request.args,claims)
-            if is_valid:
-                return jsonify({'code': 200,'status': 'Success','data':is_valid})
+        requestbody =json.loads(request.data)
+        claims = get_jwt_claims()
+        connect(alias='around')
+        user=User()
+        is_valid = user.search(requestbody,claims)
+        return jsonify({'code': 200,'status': 'Success','data':is_valid})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+
+'''Profile services'''
+@app.route('/profile/upload',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def profile_upload():
+    try:
+        requestbody =json.loads(request.data)
+        claims = get_jwt_claims()
+        connect(alias='around')
+        profile=Profile()
+        is_valid = profile.upload_image(requestbody,claims)
+        if is_valid:
+            return jsonify(is_valid)
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+
+'''Comment Service'''
+@app.route('/comment/create',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def add_comment():
+    try:
+        requestbody =json.loads(request.data)
+        claims = get_jwt_claims()
+        connect(alias='around')
+        comment=Comment()
+        is_valid = comment.add_comment(requestbody,claims)
+        if is_valid:
+            return jsonify(is_valid)
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+
+@app.route('/comment/like',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def like_comment():
+    requestbody =json.loads(request.data)
+    try:
+        claims = get_jwt_claims()
+        connect(alias='around')
+        comment=Comment()
+        res = comment.like_comment(requestbody,claims)
+        if res:
+            return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         print(e)
-        return jsonify({'code': 500,'status': 'Internal Server Error'})    
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
+@app.route('/comment/dislike',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def dislike_comment():
+    requestbody =json.loads(request.data)
+    try:
+        claims = get_jwt_claims()
+        connect(alias='around')
+        comment=Comment()
+        res = comment.dislike_comment(requestbody,claims)
+        if res:
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 if __name__ == '__main__':
     db = MongoEngine(app)

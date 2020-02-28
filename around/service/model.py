@@ -6,6 +6,9 @@ from passlib.hash import pbkdf2_sha256 as sha256
 from random import randint
 from io import BytesIO
 import base64
+import traceback
+from PIL import Image
+import re
 limit = 5
 offset = 0
 
@@ -115,9 +118,23 @@ class User(Document):
             
     
     def to_json(self,claims=None):
+        profile = Profile.objects(user= self).first()
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language}
-        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US'}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':base64.b64encode(profile.profile_image_orginal.read()) if profile.profile_image_orginal else ''}
+        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':''}
+    
+    def search(self,search,claims):
+        if search.get('search') and claims:
+            value = search.get('search')
+            user =  claims.get('user_id')
+            results = User.objects[:5].filter((Q(email =value) | Q(phone = value) | Q(user_name__istartswith = value) | Q(first_name__istartswith = value)) & Q(active = True))
+            return [res.to_json(claims) for res in results  ]
+        return False
+    
+    def get_user(self,claims):
+        if claims:
+            return User.objects(id = claims.get('user_id'),active=True).first()
+        return False
     
     first_name = StringField(max_length=200, required=True)
     last_name = StringField(max_length=200, required=True)
@@ -128,7 +145,6 @@ class User(Document):
     joined_on = DateTimeField(default=datetime.datetime.now())
     last_sign_in = DateTimeField()
     language=StringField(default='en/US',required=True)
-    #profile_id = ReferenceField(Profile)
     otp = StringField() 
     active = BooleanField(default=True)
 
@@ -141,11 +157,27 @@ class Profile(Document):
     blocklist =ListField(ReferenceField(User))
     blocked_by =ListField(ReferenceField(User))
     location  = PointField()
-    profile_image = ImageField()
+    profile_image_orginal = FileField()
+    profile_image_small = FileField()
     
     def follow_request(self,req,claims):
         pass
 
+    def upload_image(self,req,claims):
+        if req and claims and req.get('data'):
+            author = User.objects(id=claims.get('user_id')).first()
+            profile = Profile.objects(user= author).first()
+            if not profile:
+                profile = Profile(user=author).save()
+            #im = Image.open(BytesIO(base64.b64decode(req.get('data'))))
+            #imgByteArrThumbnail = BytesIO()
+            #im.resize((int(im.size[0]/.2),int(im.size[1]/.2)),3).save(imgByteArrThumbnail,'PNG')
+            #print(base64.b64encode(imgByteArrThumbnail.getvalue()))
+            profile.profile_image_orginal=base64.b64decode(req.get('data'))
+            #profile.profile_image_small=imgByteArrThumbnail.getvalue()
+            profile.save()
+            return {'code':200,'status':'Profile image uploaded successfully.'}
+        return False
     
 class TokenBlacklist(Document):
     
@@ -172,7 +204,101 @@ class MediaAttachment(Document):
     
     def to_json(self):
         return {'id':str(self.id),'file_name':self.filename,'type':self.type,'data':base64.b64encode(self.content.read()),'file_extension':self.file_extension}
+
+class Comment(Document):
+    user = ReferenceField(User,required=True)
+    mentions =ListField(ReferenceField(User))
+    created_time= DateTimeField(default=datetime.datetime.now(),required=True)
+    updated_time= DateTimeField(default=datetime.datetime.now())
+    comment=StringField(required=True,default='')
+    liked_by = ListField(ReferenceField(User))
+    disliked_by = ListField(ReferenceField(User))
+    attachments = ListField(ReferenceField(MediaAttachment))
+    hashtags = ListField()
+    active = BooleanField(default=True)
+
+    def delete_comment(self,comment_id,claims):
+        if comment_id:
+            user = User.get_user(self,claims=claims)
+            comment=Comment.objects(id=comment_id,active=True,user = user).first()
+            if comment:
+                    comment.active=False
+                    comment.save()
+                    return True
+            return False
+        return False
     
+    def like_comment(self,req,claims):
+        if req.get('comment') and claims:
+            commment_id =req.get('comment')
+            comment =Comment.objects(id=commment_id,active=True).first()
+            user = User.get_user(self,claims=claims)
+            if comment and user:
+                if user not in comment.liked_by:
+                    comment.disliked_by.remove(user) if user in comment.disliked_by else False
+                    comment.liked_by.append(user.id)
+                    comment.save()
+                    return True
+                else:
+                    comment.disliked_by.remove(user) if user in comment.disliked_by else False
+                    comment.liked_by.remove(user)
+                    comment.save()
+                    return True
+            return False
+        return False
+    
+    def dislike_comment(self,req,claims):
+        if req.get('comment') and claims:
+            comment =Comment.objects(active=True,id=req.get('comment')).first()
+            user = User.get_user(self,claims=claims)
+            if comment and user:
+                if user not in comment.disliked_by:
+                    comment.liked_by.remove(user) if user in comment.liked_by else False
+                    comment.disliked_by.append(user.id)
+                    comment.save()
+                    return True
+                else:
+                    comment.liked_by.remove(user) if user in comment.liked_by else False
+                    comment.disliked_by.remove(user)
+                    comment.save()
+                    return True
+                return False
+            return False
+        return False
+
+    def add_comment(self,req,claims):
+        if req.get('comment') and req.get('post_id') and claims:
+            attachment =[]
+            mention=[]
+            user = User.get_user(self,claims=claims)
+            post = Post.objects(active=True,id=req.get('post_id')).first()
+            if user and post:
+                for media in req.get('attachments',[]):
+                    m = MediaAttachment(filename=media.get('file_name'),file_extension=media.get('file_ext'),type=media.get('file_type'),content=base64.b64decode(media.get('data')),uploaded_by=author).save()
+                    attachment.append(m)
+                for user in req.get('mention',[]):
+                    u = User.objects(id=user)
+                    mention.append(u)
+                comment = Comment(comment=req.get('comment'),user= user,attachments=attachment,mentions=mention)
+                comment.save()
+                post.comments.append(comment)
+                post.save()
+                return {"code":200,"status":"Success","comment_id":str(comment.id)}
+            return False
+        return False
+
+    def to_json(self,claims):
+        if self.active:
+            user= User.get_user(self,claims=claims)
+            likes_by=[user.to_json() for user in self.liked_by[:limit]]
+            dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
+            attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
+            liked = True if claims and user in self.liked_by else False
+            disliked = True if claims and user in self.disliked_by  else False
+            data={'id':str(self.id),'author':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'comment':self.comment,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
+            return data
+
+
 class Post(Document):
     
     
@@ -190,16 +316,19 @@ class Post(Document):
     attachments = ListField(ReferenceField(MediaAttachment))
     hashtags = ListField()
     active = BooleanField(default=True)
+    comments = ListField(ReferenceField(Comment))
     
     def to_json(self,claims=None):
-        user= User.objects(active=True,id=claims.get('user_id')).first()
-        likes_by=[user.to_json() for user in self.liked_by[:limit]]
-        dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
-        attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
-        liked = True if claims and user in self.liked_by else False
-        disliked = True if claims and user in self.disliked_by  else False
-        data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
-        return data
+        if self.active:
+            user= User.objects(active=True,id=claims.get('user_id')).first()
+            likes_by=[user.to_json() for user in self.liked_by[:limit]]
+            dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
+            attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
+            comments=[comment.to_json(claims)for comment in self.comments[:limit]]
+            liked = True if claims and user in self.liked_by else False
+            disliked = True if claims and user in self.disliked_by  else False
+            data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments}
+            return data
     
     def validate_post(self,post,claims):
         if post and claims:
@@ -207,14 +336,13 @@ class Post(Document):
             mention=[]
             author = User.objects(id=claims['user_id']).first()
             for media in post.get('attachments',[]):
-                print(media)
                 m = MediaAttachment(filename=media.get('file_name'),file_extension=media.get('file_ext'),type=media.get('file_type'),content=base64.b64decode(media.get('data')),uploaded_by=author).save()
-                print(str(m.id))
                 attachment.append(m)
             for user in post.get('mention',[]):
                 u = User.objects(id=user)
                 mention.append(u)
-            new_post =Post(author=author,post=post['post'],topic=post.get('topic'),privacy=post.get('privacy'),hashtags=post.get('hashtags',[]),attachments=attachment,mentions=mention)
+            
+            new_post =Post(author=author,post=post['post'],topic=post.get('topic'),privacy=post.get('privacy'),attachments=attachment,mentions=mention,hashtags=re.findall(r"#(\w+)", post.get('post')))
             return new_post.save().to_json(claims)
         return False
     
@@ -236,9 +364,9 @@ class Post(Document):
     
     def delete_post(self,post_id,claims):
         if post_id:
-            post=Post.objects(id=post_id).first()
+            post=Post.objects(id=post_id,active=True).first()
             if post:
-                if post.author == claims.get('user_id',False):
+                if post.author == User.get_user(self,claims=claims):
                     post.active=False
                     post.save()
                     return True
@@ -248,8 +376,9 @@ class Post(Document):
     
     def like_post(self,req,claims):
         if req.get('post') and claims:
-            posts =Post.objects(active=True,id=req.get('post')).first()
-            user = User.objects(active=True,id=claims.get('user_id')).first()
+            post_id =req.get('post')
+            posts =Post.objects(id=post_id,active=True).first()
+            user = User.get_user(self,claims=claims)
             if posts and user:
                 if user not in posts.liked_by:
                     posts.disliked_by.remove(user) if user in posts.disliked_by else False
@@ -282,13 +411,3 @@ class Post(Document):
                 return False
             return False
         return False
-            
-    
-    #===========================================================================
-    # def search_around(self,search,claims):
-    #     if search.get('search') and search.get('value'):
-    #         if search.get('search') == 'tags':    
-    #             post = 
-    #===========================================================================
-    
-    
