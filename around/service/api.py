@@ -11,15 +11,26 @@ from flask_jwt_extended import JWTManager
 from flask_jwt_extended import (create_access_token, create_refresh_token,verify_jwt_in_request, jwt_required,jwt_optional, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt,get_jwt_claims)
 from passlib.hash import pbkdf2_sha256 as sha256
 from waitress import serve
+from flask_mail import Mail
+
 app = Flask(__name__)
 #hari added
+mail=Mail(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['JWT_SECRET_KEY'] = 'nevergiveup'
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'  
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
+#mail server config
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'xxxxxx@gmail.com'
+app.config['MAIL_PASSWORD'] = '********'
+app.config['MAIL_DEFAULT_SENDER']='TTTTTTTTTTTT@gmail.com'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
-
+mail=Mail(app)
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -118,19 +129,32 @@ def validate_email():
     except Exception as e:
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-@app.route('/validateemailforgotpassword',methods = ['POST'])
+
+
+
+
+@app.route('/validateforgotpasswordemail',methods = ['POST'])
 @cross_origin()
 def validate_forgot_password_email():
     requestbody =json.loads(request.data)
     try:
+        
         connect(alias='around')
         user=User()
         is_valid = user.validate_forgot_password_email(requestbody['email'])
-        if(is_valid == True):
+        
+        is_valid_otp = user.validate_otp_time_limit_forgotpassword(requestbody['email'])
+        if(is_valid == True and is_valid_otp==False):
+            
+            user.send_email_on_forgot_password(requestbody['email'],mail)
             return jsonify({'code': 200,'status': 'Success'})
+        elif(is_valid_otp==True):
+            return jsonify({'code': 400,'status': 'OTP Generated not yet expired!!'})
+
         return jsonify({'code': 400,'status': is_valid})
     except Exception as e:
-        print(e)
+        import traceback
+        print(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/validateotpupdatenewpassword',methods = ['POST'])
@@ -140,12 +164,17 @@ def validate_otp_update_forgot_password():
     try:
         connect(alias='around')
         user=User()
-        is_valid = user.validate_and_update_otp_new_password(requestbody)
-        if(is_valid == True):
-            return jsonify({'code': 200,'status': 'Success'})
-        return jsonify({'code': 400,'status': is_valid})
+        is_valid_otp = user.validate_otp_time_limit_forgotpassword(requestbody['email'])
+        if (is_valid_otp==True):
+            is_valid = user.validate_otp_and_update_new_password(requestbody)
+            if(is_valid == True ):
+                return jsonify({'code': 200,'status': 'Success'})
+            else:
+                return jsonify({'code': 400,'status': is_valid})
+        return jsonify({'code': 400,'status': 'Update Failed'})
     except Exception as e:
-        print(e)
+        import traceback
+        print(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 @app.route('/auth/validate/',methods = ['GET'])
 @jwt_optional
