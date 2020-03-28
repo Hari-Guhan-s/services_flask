@@ -9,8 +9,10 @@ import base64
 import traceback
 from PIL import Image
 import re
+from flask_mail import Message
 limit = 5
 offset = 0
+resend_password_time_limit=5
 
 class User(Document):
     
@@ -39,11 +41,22 @@ class User(Document):
     def validate_email(self,email):
         if email:
             if not re.match("[^@]+@[^@]+\.[^@]+", email):
-                return "Sorry, This looks like an invalid email address"
+                return "Sorry, Please provide a valid email address"
             if User.objects(email=email):
                 return "Sorry, This email is already registered"
             return True
         return False
+    def validate_forgot_password_email(self,email):
+        if email:
+            if not re.match("[^@]+@[^@]+\.[^@]+", email):
+                return "Sorry, This looks like an invalid email address"
+            if User.objects(email=email):
+
+                return True
+            else:
+                return "Sorry, The email provided is not a valid user email"
+            return True
+        return False    
     
     def validate_sign_in(self,email,password):
         if email and password:
@@ -65,7 +78,62 @@ class User(Document):
                 return True
             return False
         return False
-    
+    def validate_otp_and_update_new_password(self,req):
+        if req:
+            data_otp = req.get('otp',False)
+            data_email=req.get('email',False)
+            data_phone=req.get('phone',False)
+            data_new_password=req.get('new_password',False)
+            
+            user =User.objects((Q(phone= data_phone) | Q(email= data_email)) ).first()
+            if user and (sha256.verify(data_new_password, user.password) or not sha256.verify(str(data_otp), user.otp) ):
+                return False
+            elif user and data_new_password and user.otp and sha256.verify(str(data_otp), user.otp):
+                user.password=sha256.hash(data_new_password)
+                user.otp=''
+                user.save()
+                return True
+            else:
+                return False
+        return False 
+    #==========================Validation of otp expiry=========================== 
+    def validate_otp_time_limit_forgotpassword(self,email):
+        if email:
+            user = User.objects(Q(email =email )).first()
+            
+            if user and user.otp:
+                time_diff=datetime.datetime.utcnow()-user.last_forgot_password_mail_sent
+                
+                
+                if time_diff.days == 0 and (time_diff.seconds/60)<resend_password_time_limit :
+                    return True
+                else:
+                    return False
+            else:
+                
+                return False
+        return False
+    #==========================Send otp Mail on forgot password===========================
+    def send_email_on_forgot_password(self,email,mail_obj):
+        if mail_obj:
+            
+            if email:
+                otp = randint(100000, 999999)
+                user = User.objects(Q(email =email )).first()
+                user.otp = sha256.hash(str(otp))
+                user.last_forgot_password_mail_sent=datetime.datetime.utcnow()
+                user.save()
+                msg = Message("REG:Password Generate",
+                  
+                  recipients=[email])
+                msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your forgot password request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
+                mail_obj.send(msg)
+            
+                return True
+            else:
+                return False
+        return False
+
     def reset_password(self,req):
         if req:
             otp = req.get('otp',False)
@@ -119,6 +187,7 @@ class User(Document):
     language=StringField(default='en/US',required=True)
     otp = StringField() 
     active = BooleanField(default=True)
+    last_forgot_password_mail_sent = DateTimeField()
 
 class Profile(Document):
     user = ReferenceField(User)
