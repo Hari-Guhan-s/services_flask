@@ -262,7 +262,7 @@ class Comment(Document):
         if comment_id:
             user = User.get_user(self,claims=claims)
             comment=Comment.objects(id=comment_id,active=True,user = user).first()
-            if comment:
+            if comment and comment.user == user:
                     comment.active=False
                     comment.save()
                     return True
@@ -336,7 +336,7 @@ class Comment(Document):
             attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
             liked = True if claims and user in self.liked_by else False
             disliked = True if claims and user in self.disliked_by  else False
-            data={'id':str(self.id),'author':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'comment':self.comment,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
+            data={'id':str(self.id),'author':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'comment':self.comment,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'owner':True if self.user== user else False}
             return data
 
 
