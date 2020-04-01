@@ -133,7 +133,7 @@ def validate_email():
 
 
 
-@app.route('/validateforgotpasswordemail',methods = ['POST'])
+@app.route('/auth/forgotpassword',methods = ['POST'])
 @cross_origin()
 def validate_forgot_password_email():
     requestbody =json.loads(request.data)
@@ -157,7 +157,7 @@ def validate_forgot_password_email():
         print(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
-@app.route('/validateotpupdatenewpassword',methods = ['POST'])
+@app.route('/auth/updatepassword',methods = ['POST'])
 @cross_origin()
 def validate_otp_update_forgot_password():
     requestbody =json.loads(request.data)
