@@ -262,7 +262,7 @@ class Comment(Document):
         if comment_id:
             user = User.get_user(self,claims=claims)
             comment=Comment.objects(id=comment_id,active=True,user = user).first()
-            if comment:
+            if comment and comment.user == user:
                     comment.active=False
                     comment.save()
                     return True
@@ -320,7 +320,7 @@ class Comment(Document):
                 for user in req.get('mention',[]):
                     u = User.objects(id=user)
                     mention.append(u)
-                comment = Comment(comment=req.get('comment'),user= user,attachments=attachment,mentions=mention)
+                comment = Comment(comment=req.get('comment'),user= user,attachments=attachment,mentions=mention,hashtags = re.findall(r"#(\w+)",req.get('comment')))
                 comment.save()
                 post.comments.append(comment)
                 post.save()
@@ -336,7 +336,7 @@ class Comment(Document):
             attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
             liked = True if claims and user in self.liked_by else False
             disliked = True if claims and user in self.disliked_by  else False
-            data={'id':str(self.id),'author':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'comment':self.comment,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked }
+            data={'id':str(self.id),'author':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'comment':self.comment,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'owner':True if self.user== user else False}
             return data
 
 
@@ -368,7 +368,7 @@ class Post(Document):
             comments=[comment.to_json(claims)for comment in self.comments[:limit]]
             liked = True if claims and user in self.liked_by else False
             disliked = True if claims and user in self.disliked_by  else False
-            data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments}
+            data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments,'owner':True if self.author==user else False}
             return data
     
     def validate_post(self,post,claims):
@@ -451,4 +451,10 @@ class Post(Document):
                     return True
                 return False
             return False
+        return False
+
+    def get_post_hashtag(self,tag,claims):
+        if tag and claims:
+            posts =Post.objects(active=True,hashtags=tag)
+            return [post.to_json(claims) for post in posts]
         return False
