@@ -176,6 +176,12 @@ class User(Document):
             return User.objects(id = claims.get('user_id'),active=True).first()
         return False
     
+    def get_users(self,claims):
+        if claims:
+            users = User.objects(active=True)
+            return [user.to_json(claims) for user in users]
+        return []
+
     first_name = StringField(max_length=200, required=True)
     last_name = StringField(max_length=200, required=True)
     user_name =StringField()
@@ -324,7 +330,7 @@ class Comment(Document):
                 comment.save()
                 post.comments.append(comment)
                 post.save()
-                return {"code":200,"status":"Success","comment_id":str(comment.id)}
+                return {"code":200,"status":"Success","comment":comment.to_json(claims)}
             return False
         return False
 
