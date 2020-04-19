@@ -1,6 +1,6 @@
 import uuid
 from model  import *
-from flask import Flask,request ,redirect, url_for
+from flask import Flask,request ,redirect, url_for,make_response,abort
 from flask_cors import CORS, cross_origin
 from flask import jsonify
 import json
@@ -29,6 +29,7 @@ app.config['MAIL_PASSWORD'] = '********'
 app.config['MAIL_DEFAULT_SENDER']='TTTTTTTTTTTT@gmail.com'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
+app.config['URL'] ='localhost:5000'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 mail=Mail(app)
 def allowed_file(filename):
@@ -481,7 +482,23 @@ def get_users():
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
-
+@app.route('/media/<media_id>',methods = ['GET'])
+@cross_origin()
+def get_media(media_id):
+    try:
+        #claims = get_jwt_claims()
+        connect(alias='around')
+        media=MediaAttachment()
+        res = media.download_media(media_id)
+        if res:
+            print(res)
+            response = make_response(res.get('content'))
+            response.headers['Content-Type'] = 'application/octet-stream'
+            response.headers["Content-Disposition"] = "attachment; filename={}".format(res.get('filename'))
+            return response
+    except Exception as e:
+        print(e)
+        abort(404)
     
 if __name__ == '__main__':
     db = MongoEngine(app)

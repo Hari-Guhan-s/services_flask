@@ -13,6 +13,8 @@ from flask_mail import Message
 limit = 5
 offset = 0
 resend_password_time_limit=5
+config={}
+config['URL'] ="http://localhost:5000"
 
 class User(Document):
     
@@ -250,7 +252,13 @@ class MediaAttachment(Document):
     active = BooleanField(default=True)
     
     def to_json(self):
-        return {'id':str(self.id),'file_name':self.filename,'type':self.type,'data':base64.b64encode(self.content.read()),'file_extension':self.file_extension}
+        return config['URL']+'/media/'+str(self.id)
+
+    def download_media(self,media_id):
+        media = MediaAttachment.objects(id=media_id).first()
+        if media:
+            return {'filename': media.filename,'content':media.content.read()}
+        return False
 
 class Comment(Document):
     user = ReferenceField(User,required=True)
@@ -395,8 +403,8 @@ class Post(Document):
     
     def view_post(self,post_id,claims):
         if post_id:
-            post =Post.objects(id=post_id,active=True).exclude('active').first()
-            if post:
+            post =Post.objects(active=True,id=post_id,privacy='Public').first()
+            if post and post.active:
                 return post.to_json(claims)
             return False
         return False
