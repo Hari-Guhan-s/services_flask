@@ -24,8 +24,8 @@ app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
 #mail server config
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'xxxxxx@gmail.com'
-app.config['MAIL_PASSWORD'] = '********'
+app.config['MAIL_USERNAME'] = 'akoding_pushmail@gmail.com'
+app.config['MAIL_PASSWORD'] = 'akoding_pushmail@!'
 app.config['MAIL_DEFAULT_SENDER']='TTTTTTTTTTTT@gmail.com'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
