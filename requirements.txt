@@ -6,3 +6,4 @@ Pillow
 flask_cors
 flask_mongoengine
 waitress
+gunicorn
