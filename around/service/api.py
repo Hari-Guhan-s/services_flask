@@ -12,6 +12,7 @@ from flask_jwt_extended import (create_access_token, create_refresh_token,verify
 from passlib.hash import pbkdf2_sha256 as sha256
 from waitress import serve
 from flask_mail import Mail
+import os
 
 app = Flask(__name__)
 #hari added
