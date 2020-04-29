@@ -7,3 +7,4 @@ flask_cors
 flask_mongoengine
 waitress
 gunicorn
+flask_mail
