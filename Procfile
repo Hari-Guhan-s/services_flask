@@ -1,1 +1,1 @@
-web: gunicorn around/service/api:app
+web: gunicorn /around/service/api:app
