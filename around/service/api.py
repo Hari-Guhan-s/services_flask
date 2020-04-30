@@ -31,6 +31,10 @@ app.config['MAIL_DEFAULT_SENDER']='akodingpushmail@gmail.com'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 app.config['URL'] ='localhost:5000'
+# This would usually come from your config file
+DB_URI = "mongodb://ulcljusgealvqmvvelsy:JnIXj3aheBUmDn037Oli@b4xab7lqny8ghgn-mongodb.services.clever-cloud.com:27017/b4xab7lqny8ghgn"
+
+app.config["MONGODB_HOST"] = DB_URI
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 mail=Mail(app)
 def allowed_file(filename):
