@@ -508,7 +508,7 @@ def get_media(media_id):
 if __name__ == '__main__':
     db = MongoEngine(app)
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='travellerspediaaps.herokuapp.com', port=8000)
     
     
     
