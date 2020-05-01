@@ -1,1 +1,1 @@
-web: gunicorn --pythonpath around/service/ api:app --bind 0.0.0.0:8700
+web: gunicorn --pythonpath around/service/ api:app --bind 127.0.0.1:8700
