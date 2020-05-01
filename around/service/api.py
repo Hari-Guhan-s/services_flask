@@ -43,7 +43,7 @@ def allowed_file(filename):
 
 jwt = JWTManager(app)
 #CORS(app,resources={r"*": {"origins": "http://localhost:4200"}})
-CORS(app, resources={r"*": {"origins": "https://travellerspediaaps.herokuapp.com"}})
+CORS(app, resources={r"*": {"origins": "*"}})
 
 @jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
