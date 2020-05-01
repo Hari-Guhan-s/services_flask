@@ -45,7 +45,7 @@ jwt = JWTManager(app)
 #CORS(app,resources={r"*": {"origins": "http://localhost:4200"}})
 CORS(app, resources={r"*": {"origins": "https://travellerspediaaps.herokuapp.com"}})
 
-@jwt.token_in_blacklist_loaders
+@jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
     connect(alias='around')
     jti = decrypted_token['jti']
