@@ -32,7 +32,7 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 app.config['URL'] ='localhost:5000'
 # This would usually come from your config file
-DB_URI = "mongodb://heroku_fb2pzxs9:heroku_fb2pzxs9_123@ds353007.mlab.com:53007/heroku_fb2pzxs9"
+DB_URI = "mongodb://heroku_fb2pzxs9:heroku_fb2pzxs9_123@ds353007.mlab.com:53007/heroku_fb2pzxs9?retryWrites=false"
 
 app.config["MONGODB_HOST"] = DB_URI
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
