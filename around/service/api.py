@@ -102,6 +102,7 @@ def signup():
             return jsonify({'code': 400,'status': error})
             disconnect(alias='around')
     except Exception as e:
+        print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
         disconnect(alias='around')
 
@@ -495,6 +496,24 @@ def get_media(media_id):
         connect(alias='around')
         media=MediaAttachment()
         res = media.download_media(media_id)
+        if res:
+            print(res)
+            response = make_response(res.get('content'))
+            response.headers['Content-Type'] = 'application/octet-stream'
+            response.headers["Content-Disposition"] = "attachment; filename={}".format(res.get('filename'))
+            return response
+    except Exception as e:
+        print(e)
+        abort(404)
+
+@app.route('/profile/<profile_id>',methods = ['GET'])
+@cross_origin()
+def get_profile(profile_id):
+    try:
+        #claims = get_jwt_claims()
+        connect(alias='around')
+        profile=Profile()
+        res = profile.download_profile(profile_id)
         if res:
             print(res)
             response = make_response(res.get('content'))
