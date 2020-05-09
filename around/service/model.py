@@ -162,7 +162,7 @@ class User(Document):
     def to_json(self,claims=None):
         profile = Profile.objects(user= self).first()
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':base64.b64encode(profile.profile_image_orginal.read()) if profile.profile_image_orginal else ''}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else ''}
         return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':''}
     
     def search(self,search,claims):
@@ -208,6 +208,7 @@ class Profile(Document):
     location  = PointField()
     profile_image_orginal = FileField()
     profile_image_small = FileField()
+    profile_image_file_name = StringField()
     
     def follow_request(self,req,claims):
         pass
@@ -223,11 +224,20 @@ class Profile(Document):
             #im.resize((int(im.size[0]/.2),int(im.size[1]/.2)),3).save(imgByteArrThumbnail,'PNG')
             #print(base64.b64encode(imgByteArrThumbnail.getvalue()))
             profile.profile_image_orginal=base64.b64decode(req.get('data'))
+            profile.profile_image_file_name = req.get('file_name')+'.'+req.get('file_ext')
             #profile.profile_image_small=imgByteArrThumbnail.getvalue()
             profile.save()
             return {'code':200,'status':'Profile image uploaded successfully.'}
         return False
-    
+
+    def download_profile(self,user_id):
+        user_id = User.objects(id =user_id,active=True).first()
+        media = Profile.objects(user=user_id).first()
+        if media:
+            return {'filename': media.profile_image_file_name,'content':media.profile_image_orginal.read()}
+        return False
+
+
 class TokenBlacklist(Document):
     
     token = StringField(required=True,primary_key=True)

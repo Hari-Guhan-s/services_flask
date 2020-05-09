@@ -23,6 +23,8 @@ config = configparser.ConfigParser()
 dir_name=os.path.dirname(os.path.abspath(__file__))
 config.read(os.path.abspath(dir_name+'\\app.cfg'))
 
+# DB
+DB_URI = config['DB'].get('URI').strip().replace("'","")
 #JWT
 app.config['JWT_SECRET_KEY'] = config['JWT'].get('JWT_SECRET_KEY').strip()
 app.config['JWT_ERROR_MESSAGE_KEY'] = config['JWT'].get('JWT_ERROR_MESSAGE_KEY').strip()
@@ -47,7 +49,7 @@ def allowed_file(filename):
 
 jwt = JWTManager(app)
 #CORS(app,resources={r"*": {"origins": "http://localhost:4200"}})
-CORS(app, resources={r"*": {"origins": config['General'].get('origins').strip()}})
+CORS(app, resources={r"*": {"origins": "*"}})
 
 @jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
@@ -106,6 +108,7 @@ def signup():
             return jsonify({'code': 400,'status': error})
             disconnect(alias='around')
     except Exception as e:
+        print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
         disconnect(alias='around')
 
@@ -499,6 +502,24 @@ def get_media(media_id):
         connect(alias='around')
         media=MediaAttachment()
         res = media.download_media(media_id)
+        if res:
+            print(res)
+            response = make_response(res.get('content'))
+            response.headers['Content-Type'] = 'application/octet-stream'
+            response.headers["Content-Disposition"] = "attachment; filename={}".format(res.get('filename'))
+            return response
+    except Exception as e:
+        print(e)
+        abort(404)
+
+@app.route('/profile/<profile_id>',methods = ['GET'])
+@cross_origin()
+def get_profile(profile_id):
+    try:
+        #claims = get_jwt_claims()
+        connect(alias='around')
+        profile=Profile()
+        res = profile.download_profile(profile_id)
         if res:
             print(res)
             response = make_response(res.get('content'))
