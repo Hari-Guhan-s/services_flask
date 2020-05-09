@@ -12,25 +12,34 @@ from flask_jwt_extended import (create_access_token, create_refresh_token,verify
 from passlib.hash import pbkdf2_sha256 as sha256
 from waitress import serve
 from flask_mail import Mail
+import configparser
+import os
 
 app = Flask(__name__)
 #hari added
 mail=Mail(app)
-app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['JWT_SECRET_KEY'] = 'nevergiveup'
-app.config['JWT_ERROR_MESSAGE_KEY'] = 'status'  
-app.config['JWT_BLACKLIST_ENABLED'] = True
-app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
-#mail server config
-app.config['MAIL_SERVER']='smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'akoding_pushmail@gmail.com'
-app.config['MAIL_PASSWORD'] = 'akoding_pushmail@!'
-app.config['MAIL_DEFAULT_SENDER']='akoding_pushmail@gmail.com'
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
-app.config['URL'] ='localhost:5000'
-ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+#configuration reader
+config = configparser.ConfigParser()
+dir_name=os.path.dirname(os.path.abspath(__file__))
+config.read(os.path.abspath(dir_name+'\\app.cfg'))
+
+#JWT
+app.config['JWT_SECRET_KEY'] = config['JWT'].get('JWT_SECRET_KEY').strip()
+app.config['JWT_ERROR_MESSAGE_KEY'] = config['JWT'].get('JWT_ERROR_MESSAGE_KEY').strip()
+app.config['JWT_BLACKLIST_ENABLED'] = config['JWT'].getboolean('JWT_BLACKLIST_ENABLED')
+app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = config['JWT']['JWT_BLACKLIST_TOKEN_CHECKS'].strip().split(',')
+#Mail server config
+app.config['MAIL_SERVER']= config['Mail'].get('MAIL_SERVER').strip()
+app.config['MAIL_PORT'] = config['Mail'].getint('MAIL_PORT')
+app.config['MAIL_USERNAME'] = config['Mail'].get('MAIL_USERNAME').strip()
+app.config['MAIL_PASSWORD'] = config['Mail'].get('MAIL_PASSWORD').strip()
+app.config['MAIL_DEFAULT_SENDER']=config['Mail'].get('MAIL_DEFAULT_SENDER').strip()
+app.config['MAIL_USE_TLS'] = config['Mail'].getboolean('MAIL_USE_TLS')
+app.config['MAIL_USE_SSL'] = config['Mail'].getboolean('MAIL_USE_SSL')
+#General
+app.config['CORS_HEADERS'] = config['General'].get('CORS_HEADERS').strip()
+app.config['URL'] = config['General'].get('URL').strip()
+ALLOWED_EXTENSIONS = set(config['General']['ALLOWED_EXTENSIONS'].strip().split(','))
 mail=Mail(app)
 def allowed_file(filename):
     return '.' in filename and \
@@ -38,7 +47,7 @@ def allowed_file(filename):
 
 jwt = JWTManager(app)
 #CORS(app,resources={r"*": {"origins": "http://localhost:4200"}})
-CORS(app, resources={r"*": {"origins": "http://localhost:4200"}})
+CORS(app, resources={r"*": {"origins": config['General'].get('origins').strip()}})
 
 @jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
