@@ -100,9 +100,21 @@ def signup():
             new_user.save()
             profile =  Profile(user= new_user)
             profile.save()
-            access_token = create_access_token(identity = new_user.email)
-            refresh_token = create_refresh_token(identity = new_user.email)
-            return jsonify({'code': 200,'status': 'Success','access-token':access_token,'refresh-token':refresh_token})
+            is_valid_otp = user.validate_otp_time_limit(requestbody['email'],'verify_signup')
+            if(is_valid == True and is_valid_otp==False):
+            
+                new_user.send_email_with_otp(requestbody['email'],mail,'verify_signup')
+                return jsonify({'code': 200,'status': 'Success'})
+            elif(is_valid_otp==True):
+                return jsonify({'code': 400,'status': 'OTP Generated not yet expired!!'})
+
+            else:
+                return jsonify({'code': 400,'status': is_valid_otp})
+                disconnect(alias='around')
+
+            # access_token = create_access_token(identity = new_user.email)
+            # refresh_token = create_refresh_token(identity = new_user.email)
+            
         else:
             error = is_valid
             return jsonify({'code': 400,'status': error})
@@ -112,6 +124,33 @@ def signup():
         return jsonify({'code': 500,'status': 'Internal Server Error'})
         disconnect(alias='around')
 
+@app.route('/auth/signup/verify',methods = ['POST'])
+def signup_verify():
+    requestbody =json.loads(request.data)
+    
+    try:
+        connect(alias='around')
+        user=User()
+        is_valid = user.validate_inactive_user_email(requestbody['email'])
+        
+        is_valid_otp = user.validate_otp_time_limit(requestbody['email'],'verify_signup')
+        if(is_valid == True and is_valid_otp==True):
+            if user.validate_otp_for_signup(requestbody):
+                access_token = create_access_token(identity = requestbody['email'])
+                refresh_token = create_refresh_token(identity = requestbody['email'])
+                return jsonify({'code': 200,'status': 'Success','access-token':access_token,'refresh-token':refresh_token})
+            else:
+                return jsonify({'code': 400,'status': 'OTP is Not valid or Already an Active User'})
+        elif(is_valid_otp==False):
+            return jsonify({'code': 400,'status': 'OTP Generated got expired!!'})
+        
+        return jsonify({'code': 400,'status': is_valid})
+        disconnect(alias='around')
+            
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+        disconnect(alias='around')
           
 @app.route('/validateusername',methods = ['POST'])
 @cross_origin()
@@ -156,10 +195,10 @@ def validate_forgot_password_email():
         user=User()
         is_valid = user.validate_forgot_password_email(requestbody['email'])
         
-        is_valid_otp = user.validate_otp_time_limit_forgotpassword(requestbody['email'])
+        is_valid_otp = user.validate_otp_time_limit(requestbody['email'])
         if(is_valid == True and is_valid_otp==False):
             
-            user.send_email_on_forgot_password(requestbody['email'],mail)
+            user.send_email_with_otp(requestbody['email'],mail,'forgot_password')
             return jsonify({'code': 200,'status': 'Success'})
         elif(is_valid_otp==True):
             return jsonify({'code': 400,'status': 'OTP Generated not yet expired!!'})
@@ -177,7 +216,7 @@ def validate_otp_update_forgot_password():
     try:
         connect(alias='around')
         user=User()
-        is_valid_otp = user.validate_otp_time_limit_forgotpassword(requestbody['email'])
+        is_valid_otp = user.validate_otp_time_limit(requestbody['email'])
         if (is_valid_otp==True):
             is_valid = user.validate_otp_and_update_new_password(requestbody)
             if(is_valid == True ):
@@ -216,15 +255,48 @@ def signin():
         connect(alias='around')
         user=User()
         is_valid = user.validate_sign_in(requestbody['email'],requestbody['password'])
-        if is_valid:
-            access_token = create_access_token(identity = is_valid)
-            refresh_token = create_refresh_token(identity = is_valid)
+        if is_valid == True:
+            access_token = create_access_token(identity = requestbody['email'])
+            refresh_token = create_refresh_token(identity = requestbody['email'])
             return jsonify({'code': 200,'status': 'Success','access-token':access_token,'refresh-token':refresh_token})
+        elif is_valid != False:
+            is_valid_otp = user.validate_otp_time_limit(requestbody['email'],'verify_signup')
+            if is_valid_otp==False:
+                
+                user.send_email_with_otp(requestbody['email'],mail,'verify_signup')
+            return jsonify({'code': 403,'status': is_valid})
+
+        return jsonify({'code': 400,'status': 'Email or Password is incorrect.'})
+    except Exception as e:
+        print(e)
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+
+
+@app.route('/auth/signin/verify',methods = ['POST'])
+@cross_origin()
+def verify_signin():
+    requestbody =json.loads(request.data)
+    try:
+        connect(alias='around')
+        user=User()
+        is_valid = user.validate_sign_in(requestbody['email'],requestbody['password'],is_otp_verify=True)
+        print(is_valid)
+        is_valid_otp = user.validate_otp_time_limit(requestbody['email'],'verify_signup')
+        if(is_valid == True and is_valid_otp==True):
+            if user.validate_otp_for_signup(requestbody):
+                access_token = create_access_token(identity = requestbody['email'])
+                refresh_token = create_refresh_token(identity = requestbody['email'])
+                return jsonify({'code': 200,'status': 'Success','access-token':access_token,'refresh-token':refresh_token})
+            else:
+                return jsonify({'code': 400,'status': 'OTP is Not valid or Already an Active User'})
+        elif(is_valid_otp==False):
+            return jsonify({'code': 400,'status': 'OTP Generated got expired!!'})
         return jsonify({'code': 400,'status': 'Email or Password is incorrect.'})
     except Exception as e:
         print(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
+
 
 @app.route('/auth/signout',methods = ['GET'])
 @jwt_required

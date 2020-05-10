@@ -10,11 +10,20 @@ import traceback
 from PIL import Image
 import re
 from flask_mail import Message
-limit = 5
-offset = 0
-resend_password_time_limit=5
+import configparser
+import os
+
+#configuration reader
+config_param = configparser.ConfigParser()
+dir_name=os.path.dirname(os.path.abspath(__file__))
+config_param.read(os.path.abspath(dir_name+'\\app.cfg'))
+
+
+limit = config_param['General'].getint('limit')
+offset = config_param['General'].getint('offset')
+resend_password_time_limit= config_param['General'].getint('resend_password_time_limit')
 config={}
-config['URL'] ="http://localhost:5000"
+config['URL'] =config_param['General'].get('URL').strip()
 
 class User(Document):
     
@@ -60,11 +69,26 @@ class User(Document):
             return True
         return False    
     
-    def validate_sign_in(self,email,password):
+    def validate_inactive_user_email(self,email):
+        if email:
+            if not re.match("[^@]+@[^@]+\.[^@]+", email):
+                return "Sorry, This looks like an invalid email address"
+            if User.objects(Q(email =email ) & Q(active= False)).first():
+
+                return True
+            else:
+                return "Sorry, The email provided is not a valid user email"
+            return True
+        return False   
+    def validate_sign_in(self,email,password,is_otp_verify=False):
         if email and password:
             user = User.objects(email=email).first()
-            if user and sha256.verify(password, user.password):
-                return user.email
+            if user and sha256.verify(password, user.password) and user.active:
+                return True
+            elif  user and sha256.verify(password, user.password) and not user.active and  is_otp_verify:
+                return True
+            elif  user and sha256.verify(password, user.password) and not user.active and not is_otp_verify:
+                return "Oops!,Your account is Inactive"
         return False
     
     def forgot_password_otp(self,req):
@@ -80,6 +104,30 @@ class User(Document):
                 return True
             return False
         return False
+    #================validate otp and make signup complete=====================    
+    def validate_otp_for_signup(self,req):
+        if req:
+            data_otp = req.get('otp',False)
+            data_email=req.get('email',False)
+            data_phone=req.get('phone',False)
+            
+            user =User.objects((Q(phone= data_phone) | Q(email= data_email)) ).first()
+            
+            if user and not sha256.verify(str(data_otp), user.signup_otp):
+                return False
+            elif user and  user.signup_otp and sha256.verify(str(data_otp), user.signup_otp) and not user.active:
+                user.active=True
+                user.signup_otp=''
+                user.save()
+                return True
+            else:
+                return False
+        return False 
+    
+
+
+
+    #=========================Update new Password======================================
     def validate_otp_and_update_new_password(self,req):
         if req:
             data_otp = req.get('otp',False)
@@ -99,7 +147,32 @@ class User(Document):
                 return False
         return False 
     #==========================Validation of otp expiry=========================== 
-    def validate_otp_time_limit_forgotpassword(self,email):
+    def validate_otp_time_limit(self,email,purpose='forgot_password'):
+        if email:
+            user = User.objects(Q(email =email )).first()
+            if user and user.signup_otp and purpose =='verify_signup':
+                time_diff=datetime.datetime.utcnow()-user.last_signup_mail_sent
+                
+                print((time_diff.seconds/60))
+                if time_diff.days == 0 and (time_diff.seconds/60)<resend_password_time_limit :
+                    return True
+                else:
+                    return False
+
+            elif user and user.otp and purpose == 'forgot_password':
+                time_diff=datetime.datetime.utcnow()-user.last_forgot_password_mail_sent
+                
+                
+                if time_diff.days == 0 and (time_diff.seconds/60)<resend_password_time_limit :
+                    return True
+                else:
+                    return False
+            else:
+                
+                return False
+        return False
+       #==========================Validation of otp expiry=========================== 
+    def validate_signup_otp_time_limit(self,email):
         if email:
             user = User.objects(Q(email =email )).first()
             
@@ -116,19 +189,28 @@ class User(Document):
                 return False
         return False
     #==========================Send otp Mail on forgot password===========================
-    def send_email_on_forgot_password(self,email,mail_obj):
+    def send_email_with_otp(self,email,mail_obj,purpose='forgot_password'):
         if mail_obj:
             
             if email:
                 otp = randint(100000, 999999)
                 user = User.objects(Q(email =email )).first()
-                user.otp = sha256.hash(str(otp))
-                user.last_forgot_password_mail_sent=datetime.datetime.utcnow()
-                user.save()
+                
                 msg = Message("REG:Password Generate",
                   
                   recipients=[email])
-                msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your forgot password request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
+                if purpose == 'forgot_password':
+                    user.otp = sha256.hash(str(otp))
+                    user.last_forgot_password_mail_sent=datetime.datetime.utcnow()
+                    user.save()
+                    msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your forgot password request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
+                if purpose == 'verify_signup':
+                    user.signup_otp = sha256.hash(str(otp))
+                    print(str(otp))
+                    user.last_signup_mail_sent=datetime.datetime.utcnow()
+                    user.save()
+                    msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your signup request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
+                
                 mail_obj.send(msg)
             
                 return True
@@ -193,9 +275,11 @@ class User(Document):
     joined_on = DateTimeField(default=datetime.datetime.now())
     last_sign_in = DateTimeField()
     language=StringField(default='en/US',required=True)
-    otp = StringField() 
-    active = BooleanField(default=True)
+    otp = StringField()
+    active = BooleanField(default=False)
+    signup_otp = StringField()
     last_forgot_password_mail_sent = DateTimeField()
+    last_signup_mail_sent = DateTimeField()
 
 class Profile(Document):
     user = ReferenceField(User)
