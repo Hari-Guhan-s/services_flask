@@ -16,7 +16,7 @@ import os
 #configuration reader
 config_param = configparser.ConfigParser()
 dir_name=os.path.dirname(os.path.abspath(__file__))
-config_param.read(os.path.abspath(dir_name+'\\app.cfg'))
+config_param.read(os.path.abspath(os.path.join(dir_name+'//app.cfg')))
 
 
 limit = config_param['General'].getint('limit')

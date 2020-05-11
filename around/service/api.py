@@ -21,7 +21,7 @@ mail=Mail(app)
 #configuration reader
 config = configparser.ConfigParser()
 dir_name=os.path.dirname(os.path.abspath(__file__))
-config.read(os.path.abspath(dir_name+'\\app.cfg'))
+config.read(os.path.abspath(os.path.join(dir_name+'//app.cfg')))
 
 # DB
 DB_URI = config['DB'].get('URI').strip().replace("'","")
