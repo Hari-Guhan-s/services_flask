@@ -9,6 +9,7 @@ import base64
 import traceback
 from PIL import Image
 import re
+from flask import current_app
 from flask_mail import Message
 import configparser
 import os
@@ -189,34 +190,41 @@ class User(Document):
                 return False
         return False
     #==========================Send otp Mail on forgot password===========================
-    def send_email_with_otp(self,email,mail_obj,purpose='forgot_password'):
-        if mail_obj:
-            
-            if email:
-                otp = randint(100000, 999999)
-                user = User.objects(Q(email =email )).first()
+    def send_email_with_otp(self,email,mail_obj,executor,purpose='forgot_password'):
+        try:
+            if mail_obj:
                 
-                msg = Message("REG:Password Generate",
-                  
-                  recipients=[email])
-                if purpose == 'forgot_password':
-                    user.otp = sha256.hash(str(otp))
-                    user.last_forgot_password_mail_sent=datetime.datetime.utcnow()
-                    user.save()
-                    msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your forgot password request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
-                if purpose == 'verify_signup':
-                    user.signup_otp = sha256.hash(str(otp))
-                    print(str(otp))
-                    user.last_signup_mail_sent=datetime.datetime.utcnow()
-                    user.save()
-                    msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your signup request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
-                
-                mail_obj.send(msg)
-            
-                return True
-            else:
-                return False
-        return False
+                if email:
+                    otp = randint(100000, 999999)
+                    user = User.objects(Q(email =email )).first()
+                    
+                    msg = Message("REG:OTP Travellerspedia",
+                    
+                    recipients=[email])
+                    if purpose == 'forgot_password':
+                        user.otp = sha256.hash(str(otp))
+                        user.last_forgot_password_mail_sent=datetime.datetime.utcnow()
+                        user.save()
+                        msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your forgot password request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
+                    if purpose == 'verify_signup':
+                        user.signup_otp = sha256.hash(str(otp))
+                        print(str(otp))
+                        user.last_signup_mail_sent=datetime.datetime.utcnow()
+                        user.save()
+                        msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your signup request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
+                        if executor:
+                            future=executor.submit(send_mail,mail_obj,msg)
+                            print (future,"==================>Return of Async Mail executor")
+                        else:
+                            
+                            send_mail(mail_obj,msg)
+                    return True
+                else:
+                    return False
+        except Exception as e:  
+            print(e)
+            return False
+    
 
     def reset_password(self,req):
         if req:
@@ -566,3 +574,11 @@ class Post(Document):
             posts =Post.objects(active=True,hashtags=tag)
             return [post.to_json(claims) for post in posts]
         return False
+
+def send_mail(mail_obj,msg):
+    try:
+        mail_obj.send(msg)
+        return True
+    except Exception as error :
+        print(error)
+        return False     

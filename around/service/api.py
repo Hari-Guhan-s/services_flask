@@ -12,12 +12,15 @@ from flask_jwt_extended import (create_access_token, create_refresh_token,verify
 from passlib.hash import pbkdf2_sha256 as sha256
 from waitress import serve
 from flask_mail import Mail
+from flask_executor import Executor
+from flask import current_app
 import configparser
 import os
 
 app = Flask(__name__)
 #hari added
 mail=Mail(app)
+executor = Executor(app)
 #configuration reader
 config = configparser.ConfigParser()
 dir_name=os.path.dirname(os.path.abspath(__file__))
@@ -43,6 +46,12 @@ app.config['MAIL_USE_SSL'] = config['Mail'].getboolean('MAIL_USE_SSL')
 app.config['CORS_HEADERS'] = config['General'].get('CORS_HEADERS').strip()
 app.config['URL'] = config['General'].get('URL').strip()
 ALLOWED_EXTENSIONS = set(config['General']['ALLOWED_EXTENSIONS'].strip().split(','))
+# Executor
+app.config['EXECUTOR_PROPAGATE_EXCEPTIONS'] = config['General'].getboolean('EXECUTOR_PROPAGATE_EXCEPTIONS')
+
+
+
+
 mail=Mail(app)
 def allowed_file(filename):
     return '.' in filename and \
@@ -104,7 +113,7 @@ def signup():
             is_valid_otp = user.validate_otp_time_limit(requestbody['email'],'verify_signup')
             if(is_valid == True and is_valid_otp==False):
             
-                new_user.send_email_with_otp(requestbody['email'],mail,'verify_signup')
+                new_user.send_email_with_otp(requestbody['email'],mail,executor,'verify_signup')
                 return jsonify({'code': 200,'status': 'Success'})
             elif(is_valid_otp==True):
                 return jsonify({'code': 400,'status': 'OTP Generated not yet expired!!'})
@@ -199,7 +208,7 @@ def validate_forgot_password_email():
         is_valid_otp = user.validate_otp_time_limit(requestbody['email'])
         if(is_valid == True and is_valid_otp==False):
             
-            user.send_email_with_otp(requestbody['email'],mail,'forgot_password')
+            user.send_email_with_otp(requestbody['email'],mail,executor,'forgot_password')
             return jsonify({'code': 200,'status': 'Success'})
         elif(is_valid_otp==True):
             return jsonify({'code': 400,'status': 'OTP Generated not yet expired!!'})
@@ -264,7 +273,7 @@ def signin():
             is_valid_otp = user.validate_otp_time_limit(requestbody['email'],'verify_signup')
             if is_valid_otp==False:
                 
-                user.send_email_with_otp(requestbody['email'],mail,'verify_signup')
+                user.send_email_with_otp(requestbody['email'],mail,executor,'verify_signup')
             return jsonify({'code': 403,'status': is_valid})
 
         return jsonify({'code': 400,'status': 'Email or Password is incorrect.'})
@@ -602,7 +611,7 @@ def get_profile(profile_id):
     except Exception as e:
         print(e)
         abort(404)
-    
+
 if __name__ == '__main__':
     db = MongoEngine(app)
     serve(app,host='127.0.0.1', port=5000)
