@@ -116,11 +116,11 @@ def signup():
                 new_user.send_email_with_otp(requestbody['email'],mail,executor,'verify_signup')
                 return jsonify({'code': 200,'status': 'Success'})
             elif(is_valid_otp==True):
-                return jsonify({'code': 400,'status': 'OTP Generated not yet expired!!'})
+                return jsonify({'code': 400,'status': 'OTP_expired!!'})
 
             else:
                 return jsonify({'code': 400,'status': is_valid_otp})
-                disconnect(alias='around')
+            disconnect(alias='around')
 
             # access_token = create_access_token(identity = new_user.email)
             # refresh_token = create_refresh_token(identity = new_user.email)
@@ -385,20 +385,31 @@ def view_all_post():
         print(e,"error:")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
-@app.route('/post/<post_id>',methods = ['GET'])
+@app.route('/post/<post_id>',methods = ['GET','POST'])
 @jwt_optional
 @cross_origin()
 def view_post(post_id):
     try:
-        claims = get_jwt_claims()
-        connect(alias='around')
-        post=Post()
-        is_valid = post.view_post(post_id,claims)
-        if is_valid:
-            return jsonify({'code': 200,'status': 'Success','data' :is_valid})
-        return jsonify({'code': 400,'status': 'Something went wrong.'})
+        if request.method == 'POST':
+            requestbody =json.loads(request.data)
+            claims = get_jwt_claims()
+            connect(alias='around')
+            post=Post()
+            is_valid = post.edit_post(post_id,requestbody,claims)
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Success','data' :is_valid})
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        else:
+            claims = get_jwt_claims()
+            connect(alias='around')
+            post=Post()
+            is_valid = post.view_post(post_id,claims)
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Success','data' :is_valid})
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        print(e,"except")
+        import traceback
+        print(traceback.format_exc(),"except")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
     

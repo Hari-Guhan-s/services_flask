@@ -30,17 +30,17 @@ class User(Document):
     
     def validate_record(self,username,email,password,first_name,last_name):
         if not first_name:
-            return "Please enter the first name"
+            return "invalid_firstname"
         if not last_name:
-            return "Please enter the last name"  
+            return "invalid_lastname"  
         if User.objects(user_name=username):
-            return "Sorry, The username already exists"
+            return "username_exists"
         if not email:
-            return "Please enter the email"
+            return "invalid_email"
         elif not re.match("[^@]+@[^@]+\.[^@]+", email):
-                return "Sorry, This looks like an invalid email address"
+                return "invalid_email"
         if User.objects(email=email):
-            return "Sorry, The email already registered"         
+            return "email_exists"         
         return True
     
     def validate_username(self,username):
@@ -501,6 +501,33 @@ class Post(Document):
             
             new_post =Post(author=author,post=post['post'],topic=post.get('topic'),privacy=post.get('privacy'),attachments=attachment,mentions=mention,hashtags=re.findall(r"#(\w+)", post.get('post')))
             return new_post.save().to_json(claims)
+        return False
+    
+    
+    def edit_post(self,post_id,post,claims):
+        if post_id:
+            post_obj =Post.objects(active=True,id=post_id,privacy='Public').first()
+            if post_obj:
+                attachment =[]
+                mention=[]
+                
+                for media in post.get('attachments',[]):
+                    m = MediaAttachment(filename=media.get('file_name'),file_extension=media.get('file_ext'),type=media.get('file_type'),content=base64.b64decode(media.get('data')),uploaded_by=author).save()
+                    attachment.append(m)
+                for user in post.get('mention',[]):
+                    u = User.objects(id=user)
+                    mention.append(u)
+                post_obj.post=post.get('post')
+                post_obj.topic=post.get('topic')
+                post_obj.privacy=post.get('privacy')
+                post_obj.attachment=attachment
+                post_obj.mention=mention
+                post_obj.created_time=post_obj.created_time
+                post_obj.hashtags=re.findall(r"#(\w+)", post.get('post'))
+                post_obj.updated_time = datetime.datetime.now()
+                post_obj.save()
+                return post_obj.to_json(claims)
+            return False
         return False
     
     def view_post(self,post_id,claims):
