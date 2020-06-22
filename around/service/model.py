@@ -503,14 +503,20 @@ class Post(Document):
             return new_post.save().to_json(claims)
         return False
     
-    
+    def get_my_post(self,claims):
+        if claims:
+            # author = User.objects(id=claims['user_id']).first()
+            posts =Post.objects(active=True,privacy='Public',authour=claims['user_id']).order_by('-created_time')
+            if posts:
+                return [post.to_json(claims) for post in posts ]
+        return False
     def edit_post(self,post_id,post,claims):
         if post_id:
             post_obj =Post.objects(active=True,id=post_id,privacy='Public').first()
             if post_obj:
                 attachment =[]
                 mention=[]
-                
+                author = User.objects(id=claims['user_id']).first()
                 for media in post.get('attachments',[]):
                     m = MediaAttachment(filename=media.get('file_name'),file_extension=media.get('file_ext'),type=media.get('file_type'),content=base64.b64decode(media.get('data')),uploaded_by=author).save()
                     attachment.append(m)

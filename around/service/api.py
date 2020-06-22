@@ -384,7 +384,28 @@ def view_all_post():
     except Exception as e:
         print(e,"error:")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
+
+
+@app.route('/post/my_post',methods = ['POST'])
+@jwt_optional
+@cross_origin()
+def get_my_post():
+    try:
     
+        
+        claims = get_jwt_claims()
+        connect(alias='around')
+        post=Post()
+        my_posts=post.get_my_post(claims)
+        if my_posts and len(my_posts)>0:
+            return jsonify({'code': 200,'status': 'Success','posts' :my_posts})
+        return jsonify({'code': 400,'status': 'No Posts','posts':[]})
+    except Exception as e:
+        print(e,"error:")
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+
+    
+
 @app.route('/post/<post_id>',methods = ['GET','POST'])
 @jwt_optional
 @cross_origin()
