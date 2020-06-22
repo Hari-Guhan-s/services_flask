@@ -386,7 +386,7 @@ def view_all_post():
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 
-@app.route('/post/my_post',methods = ['POST'])
+@app.route('/post/my_post',methods = ['GET'])
 @jwt_optional
 @cross_origin()
 def get_my_post():

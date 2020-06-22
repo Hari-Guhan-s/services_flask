@@ -212,12 +212,12 @@ class User(Document):
                         user.last_signup_mail_sent=datetime.datetime.utcnow()
                         user.save()
                         msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your signup request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
-                        if executor:
-                            future=executor.submit(send_mail,mail_obj,msg)
-                            print (future,"==================>Return of Async Mail executor")
-                        else:
-                            
-                            send_mail(mail_obj,msg)
+                    if executor:
+                        future=executor.submit(send_mail,mail_obj,msg)
+                        print (future,"==================>Return of Async Mail executor")
+                    else:
+                        
+                        send_mail(mail_obj,msg)
                     return True
                 else:
                     return False
@@ -526,8 +526,8 @@ class Post(Document):
                 post_obj.post=post.get('post')
                 post_obj.topic=post.get('topic')
                 post_obj.privacy=post.get('privacy')
-                post_obj.attachment=attachment
-                post_obj.mention=mention
+                post_obj.attachments=attachment
+                post_obj.mentions=mention
                 post_obj.created_time=post_obj.created_time
                 post_obj.hashtags=re.findall(r"#(\w+)", post.get('post'))
                 post_obj.updated_time = datetime.datetime.now()
