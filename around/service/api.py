@@ -382,6 +382,8 @@ def view_all_post():
             return jsonify({'code': 200,'status': 'Success','posts' :is_valid})
         return jsonify({'code': 400,'status': 'No Posts','posts':[]})
     except Exception as e:
+        import traceback
+        print(traceback.format_exc(),"except")
         print(e,"error:")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 

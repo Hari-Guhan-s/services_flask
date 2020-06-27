@@ -98,8 +98,6 @@ class User(Document):
             user =User.objects(Q(email =data ) | Q(phone= data)).first()
             if user and data:
                 otp = randint(100000, 999999)
-                print('otp===')
-                print(otp)
                 user.otp = sha256.hash(str(otp))
                 user.save()
                 return True
@@ -153,8 +151,7 @@ class User(Document):
             user = User.objects(Q(email =email )).first()
             if user and user.signup_otp and purpose =='verify_signup':
                 time_diff=datetime.datetime.utcnow()-user.last_signup_mail_sent
-                
-                print((time_diff.seconds/60))
+            
                 if time_diff.days == 0 and (time_diff.seconds/60)<resend_password_time_limit :
                     return True
                 else:
@@ -208,7 +205,7 @@ class User(Document):
                         msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your forgot password request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
                     if purpose == 'verify_signup':
                         user.signup_otp = sha256.hash(str(otp))
-                        print(str(otp))
+                        
                         user.last_signup_mail_sent=datetime.datetime.utcnow()
                         user.save()
                         msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your signup request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
@@ -506,7 +503,7 @@ class Post(Document):
     def get_my_post(self,claims):
         if claims:
             # author = User.objects(id=claims['user_id']).first()
-            posts =Post.objects(active=True,privacy='Public',authour=claims['user_id']).order_by('-created_time')
+            posts =Post.objects(active=True,privacy='Public',author=claims['user_id']).order_by('-created_time')
             if posts:
                 return [post.to_json(claims) for post in posts ]
         return False
