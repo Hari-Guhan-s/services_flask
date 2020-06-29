@@ -16,6 +16,8 @@ from flask_executor import Executor
 from flask import current_app
 import configparser
 import os
+from flask import Flask
+from datetime import datetime
 
 app = Flask(__name__)
 #hari added
@@ -648,7 +650,4 @@ def get_profile(profile_id):
 
 if __name__ == '__main__':
     db = MongoEngine(app)
-    serve(app,host='127.0.0.1', port=5000)
-    
-    
-    
+    app.run(debug=True, use_reloader=True)

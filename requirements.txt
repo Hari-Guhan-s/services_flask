@@ -1,5 +1,4 @@
 flask_jwt_extended
-flask
 passlib
 mongoengine
 Pillow
@@ -7,3 +6,5 @@ flask_cors
 flask_mongoengine
 waitress
 flask_executor
+Flask
+gunicorn
