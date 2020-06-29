@@ -8,3 +8,4 @@ waitress
 flask_executor
 Flask
 gunicorn
+flask_mail
