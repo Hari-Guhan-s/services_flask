@@ -263,6 +263,7 @@ def validate_session():
 @cross_origin()
 def signin():
     requestbody =json.loads(request.data)
+    print('requestbody',requestbody)
     try:
         connect(alias='around')
         user=User()
