@@ -471,6 +471,7 @@ class Post(Document):
     hashtags = ListField()
     active = BooleanField(default=True)
     comments = ListField(ReferenceField(Comment))
+    location = GeoPointField(default=[])
     
     def to_json(self,claims=None):
         if self.active:
@@ -481,7 +482,7 @@ class Post(Document):
             comments=[comment.to_json(claims)for comment in self.comments[:limit]]
             liked = True if claims and user in self.liked_by else False
             disliked = True if claims and user in self.disliked_by  else False
-            data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments,'owner':True if self.author==user else False}
+            data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments,'owner':True if self.author==user else False,'location':self.location or []}
             return data
     
     def validate_post(self,post,claims):
@@ -496,7 +497,7 @@ class Post(Document):
                 u = User.objects(id=user)
                 mention.append(u)
             
-            new_post =Post(author=author,post=post['post'],topic=post.get('topic'),privacy=post.get('privacy'),attachments=attachment,mentions=mention,hashtags=re.findall(r"#(\w+)", post.get('post')))
+            new_post =Post(author=author,post=post['post'],topic=post.get('topic'),privacy=post.get('privacy'),attachments=attachment,mentions=mention,hashtags=re.findall(r"#(\w+)", post.get('post')),location=post.get('location',[]))
             return new_post.save().to_json(claims)
         return False
     

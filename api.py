@@ -271,7 +271,10 @@ def signin():
         if is_valid == True:
             access_token = create_access_token(identity = requestbody['email'])
             refresh_token = create_refresh_token(identity = requestbody['email'])
-            return jsonify({'code': 200,'status': 'Success','access-token':access_token,'refresh-token':refresh_token})
+            user=User.objects(email=requestbody['email']).first()
+            res = {'code': 200,'status': 'Success','access-token':access_token,'refresh-token':refresh_token}
+            res.update(user.to_json())
+            return jsonify(res)
         elif is_valid != False:
             is_valid_otp = user.validate_otp_time_limit(requestbody['email'],'verify_signup')
             if is_valid_otp==False:
