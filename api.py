@@ -546,6 +546,40 @@ def profile_upload():
     except Exception as e:
         print(e)
         return jsonify({'code': 500,'status': 'Something went wrong'})
+    
+@app.route('/profile/follow',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def profile_follow():
+    try:
+        requestbody =json.loads(request.data)
+        claims = get_jwt_claims()
+        connect(alias='around')
+        profile=Profile()
+        is_valid = profile.follow_user(requestbody,claims)
+        if is_valid:
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+    except Exception as e:
+        print(traceback.format_exc())
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+
+@app.route('/profile/block',methods = ['POST'])
+@jwt_required
+@cross_origin()
+def accept_follow():
+    try:
+        requestbody =json.loads(request.data)
+        claims = get_jwt_claims()
+        connect(alias='around')
+        profile=Profile()
+        is_valid = profile.block_user(requestbody,claims)
+        if is_valid:
+            return jsonify({'code': 200,'status': 'Success'})
+        return jsonify({'code': 500,'status': 'Something went wrong'})
+    except Exception as e:
+        print(traceback.format_exc())
+        return jsonify({'code': 500,'status': 'Something went wrong'})
 
 '''Comment Service'''
 @app.route('/comment/create',methods = ['POST'])

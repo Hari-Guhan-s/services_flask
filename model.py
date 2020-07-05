@@ -248,9 +248,10 @@ class User(Document):
     
     def to_json(self,claims=None):
         profile = Profile.objects(user= self).first()
+        user = User.objects(id = claims.get('user_id'),active=True).first() if claims.get('user_id') else ''
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else ''}
-        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':''}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False}
+        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False}
     
     def search(self,search,claims):
         if search.get('search') and claims:
@@ -285,7 +286,6 @@ class User(Document):
     signup_otp = StringField()
     last_forgot_password_mail_sent = DateTimeField()
     last_signup_mail_sent = DateTimeField()
-
 class Profile(Document):
     user = ReferenceField(User)
     followers = ListField(ReferenceField(User))
@@ -298,10 +298,6 @@ class Profile(Document):
     profile_image_orginal = FileField()
     profile_image_small = FileField()
     profile_image_file_name = StringField()
-    
-    def follow_request(self,req,claims):
-        pass
-
     def upload_image(self,req,claims):
         if req and claims and req.get('data'):
             author = User.objects(id=claims.get('user_id')).first()
@@ -324,6 +320,46 @@ class Profile(Document):
         media = Profile.objects(user=user_id).first()
         if media:
             return {'filename': media.profile_image_file_name,'content':media.profile_image_orginal.read()}
+        return False
+
+    def follow_user(self,req,claims):
+        if req and claims and req.get('user_id'):
+            user = User.objects(id=claims.get('user_id')).first()
+            follow_user = User.objects(id=req.get('user_id')).first()
+            profile = Profile.objects(user=user).first()
+            follow_profile = Profile.objects(user=follow_user).first()
+            if user and follow_user and follow_user != user and follow_user not in profile.blocked_by:
+                if follow_user not in profile.following and user not in follow_profile.followers:
+                    profile.following.append(follow_user)
+                    follow_profile.followers.append(user)
+                    profile.save()
+                    follow_profile.save()
+                    return True
+                else:
+                    profile.following.remove(follow_user)
+                    follow_profile.followers.remove(user)
+                    profile.save()
+                    follow_profile.save()
+                    return True
+            return False
+        return False
+
+    def block_user(self,req,claims):
+        if req and claims and req.get('user_id'):
+            user = User.objects(id=claims.get('user_id')).first()
+            block_user = User.objects(id=req.get('user_id')).first()
+            profile = Profile.objects(user=user).first()
+            block_profile = Profile.objects(user=block_user).first()
+            if user and block_user and block_user != user and block_user not in profile.blocklist:
+                if block_user:
+                    block_profile.blocked_by.append(user)
+                    profile.followers.remove(block_user)
+                    block_profile.following.remove(user)
+                    profile.save()
+                    block_profile.save()
+                    return True
+                return False
+            return False
         return False
 
 
@@ -454,8 +490,6 @@ class Comment(Document):
 
 
 class Post(Document):
-    
-    
     CHOICES=('Public','Private','Me')
     author = ReferenceField(User,required=True)
     mentions =ListField(ReferenceField(User))
