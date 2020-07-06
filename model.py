@@ -517,7 +517,7 @@ class Post(Document):
             liked = True if claims and user in self.liked_by else False
             disliked = True if claims and user in self.disliked_by  else False
             collections = Collections.objects(active=True,user=claims.get('user_id')).first()
-            if self in collections.posts:
+            if collections and rself in collections.posts:
                     # print(data.to_json(claims))
                 collection =True
             else:
@@ -665,7 +665,7 @@ class Collections(Document):
                 
             else:
                 user=claims.get('user_id')
-                posts=[Post.objects(id=data.get('post_id'))]
+                posts=[post]
                 my_collections=Collections(user=user,posts=posts)
             my_collections.save()
             # print(my_collections.to_json(claims))
@@ -692,8 +692,8 @@ class Collections(Document):
     def get_my_collections(self,claims):
         if claims.get('user_id',False):
             my_collections=Collections.objects(active=True,user=claims.get('user_id')).first()
-            print(my_collections.posts)
-            return my_collections.to_json(claims)
+            if my_collections:            
+                return my_collections.to_json(claims)
         return False
     
     def to_json(self,claims):
