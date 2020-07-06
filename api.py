@@ -284,6 +284,8 @@ def signin():
         return jsonify({'code': 400,'status': 'Email or Password is incorrect.'})
     except Exception as e:
         print(e)
+        import traceback
+        print(traceback.format_exc(),"except")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 
@@ -389,7 +391,7 @@ def view_all_post():
     except Exception as e:
         import traceback
         print(traceback.format_exc(),"except")
-        print(e,"error:")
+        # print(e,"error:")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 
@@ -684,6 +686,55 @@ def get_profile(profile_id):
     except Exception as e:
         print(e)
         abort(404)
+
+@app.route('/collection',methods = ['GET','POST'])
+@jwt_optional
+@cross_origin()
+def get_add_collections():
+    try:
+        if request.method == 'POST':
+            requestbody =json.loads(request.data)
+            claims = get_jwt_claims()
+            connect(alias='around')
+            collection=Collections()
+            is_valid = collection.add_to_collections(requestbody,claims)
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Success','data' :is_valid})
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        else:
+            claims = get_jwt_claims()
+            connect(alias='around')
+            collection=Collections()
+            is_valid = collection.get_my_collections(claims)
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Success','data' :is_valid})
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc(),"except")
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+
+@app.route('/collection/remove',methods = ['POST'])
+@jwt_optional
+@cross_origin()
+def remove_from_collection():
+    try:
+        if request.method == 'POST':
+            requestbody =json.loads(request.data)
+            claims = get_jwt_claims()
+            connect(alias='around')
+            collection=Collections()
+            is_valid = collection.remove_from_collections(requestbody,claims)
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Success','data' :is_valid})
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        else:
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc(),"except")
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+
 
 if __name__ == '__main__':
     db = MongoEngine(app)

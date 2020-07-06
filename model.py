@@ -248,7 +248,7 @@ class User(Document):
     
     def to_json(self,claims=None):
         profile = Profile.objects(user= self).first()
-        user = User.objects(id = claims.get('user_id'),active=True).first() if claims.get('user_id') else ''
+        user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
         if self.active:
             return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False}
         return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False}
@@ -516,7 +516,13 @@ class Post(Document):
             comments=[comment.to_json(claims)for comment in self.comments[:limit]]
             liked = True if claims and user in self.liked_by else False
             disliked = True if claims and user in self.disliked_by  else False
-            data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments,'owner':True if self.author==user else False,'location':self.location or []}
+            collections = Collections.objects(active=True,user=claims.get('user_id')).first()
+            if self in collections.posts:
+                    # print(data.to_json(claims))
+                collection =True
+            else:
+                collection =False
+            data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments,'owner':True if self.author==user else False,'location':self.location,'collection': collection}
             return data
     
     def validate_post(self,post,claims):
@@ -639,6 +645,69 @@ class Post(Document):
             posts =Post.objects(active=True,hashtags=tag)
             return [post.to_json(claims) for post in posts]
         return False
+
+
+class Collections(Document):
+    user = ReferenceField(User,required=True)
+    posts =ListField(ReferenceField(Post))
+    created_time= DateTimeField(default=datetime.datetime.now(),required=True)
+    updated_time= DateTimeField(default=datetime.datetime.now())
+    active = BooleanField(default=True)
+
+    def add_to_collections(self,data,claims):
+        if data and claims.get('user_id',False):
+            my_collections=Collections.objects(active=True,user=claims.get('user_id')).first()
+            post=Post.objects(id=data.get('post_id')).first()
+            # print(Post.objects(id=data.get('post_id')).to_json())
+            if my_collections:
+                my_collections.posts.append(post.id)
+                my_collections.updated_time=datetime.datetime.now()
+                
+            else:
+                user=claims.get('user_id')
+                posts=[Post.objects(id=data.get('post_id'))]
+                my_collections=Collections(user=user,posts=posts)
+            my_collections.save()
+            # print(my_collections.to_json(claims))
+            return True
+        else:
+            return False
+    
+    def remove_from_collections(self,data,claims):
+        if data and claims.get('user_id',False):
+            my_collections=Collections.objects(active=True,user=claims.get('user_id')).first()
+            if my_collections:
+                post=Post.objects(id=data['post_id'],active=True).first()
+                if post:
+                    # print(post.to_json(claims))
+                    my_collections.posts.remove(post)
+                    my_collections.updated_time=datetime.datetime.now()
+                    my_collections.save()
+                    print(len(my_collections.posts))
+                    return True
+            return False
+        else:
+            return False
+
+    def get_my_collections(self,claims):
+        if claims.get('user_id',False):
+            my_collections=Collections.objects(active=True,user=claims.get('user_id')).first()
+            print(my_collections.posts)
+            return my_collections.to_json(claims)
+        return False
+    
+    def to_json(self,claims):
+        if self.active and claims:
+            user= User.get_user(self,claims=claims)
+            my_posts=[post.to_json(claims) for post in self.posts]
+            data={'user':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'posts':my_posts}
+            return data
+        return False
+
+
+
+
+
 
 def send_mail(mail_obj,msg):
     try:
