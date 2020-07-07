@@ -517,7 +517,7 @@ class Post(Document):
             liked = True if claims and user in self.liked_by else False
             disliked = True if claims and user in self.disliked_by  else False
             collections = Collections.objects(active=True,user=claims.get('user_id')).first()
-            if collections and rself in collections.posts:
+            if collections and self in collections.posts:
                     # print(data.to_json(claims))
                 collection =True
             else:
