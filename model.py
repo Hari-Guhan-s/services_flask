@@ -660,7 +660,9 @@ class Collections(Document):
             post=Post.objects(id=data.get('post_id')).first()
             # print(Post.objects(id=data.get('post_id')).to_json())
             if my_collections:
-                my_collections.posts.append(post.id)
+                collection_list=list(set(my_collections.posts))
+                collection_list.append(post)
+                my_collections.posts=collection_list
                 my_collections.updated_time=datetime.datetime.now()
                 
             else:
@@ -699,7 +701,7 @@ class Collections(Document):
     def to_json(self,claims):
         if self.active and claims:
             user= User.get_user(self,claims=claims)
-            my_posts=[post.to_json(claims) for post in self.posts]
+            my_posts=[post.to_json(claims) for post in set(self.posts)]
             data={'user':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'posts':my_posts}
             return data
         return False
