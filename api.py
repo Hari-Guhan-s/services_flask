@@ -514,7 +514,7 @@ def get_hashtag(tag):
             return jsonify({'code': 200,'status': 'Success','data':res})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        logging.info(traceback.logging.info_exc())
+        logging.info(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 '''search services'''
