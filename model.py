@@ -211,7 +211,7 @@ class User(Document):
                         msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your signup request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
                     if executor:
                         future=executor.submit(send_mail,mail_obj,msg)
-                        print (future,"==================>Return of Async Mail executor")
+                        logging.info (future,"==================>Return of Async Mail executor")
                     else:
                         
                         send_mail(mail_obj,msg)
@@ -219,7 +219,7 @@ class User(Document):
                 else:
                     return False
         except Exception as e:  
-            print(e)
+            logging.info(e)
             return False
     
 
@@ -307,7 +307,7 @@ class Profile(Document):
             #im = Image.open(BytesIO(base64.b64decode(req.get('data'))))
             #imgByteArrThumbnail = BytesIO()
             #im.resize((int(im.size[0]/.2),int(im.size[1]/.2)),3).save(imgByteArrThumbnail,'PNG')
-            #print(base64.b64encode(imgByteArrThumbnail.getvalue()))
+            #logging.info(base64.b64encode(imgByteArrThumbnail.getvalue()))
             profile.profile_image_orginal=base64.b64decode(req.get('data'))
             profile.profile_image_file_name = req.get('file_name')+'.'+req.get('file_ext')
             #profile.profile_image_small=imgByteArrThumbnail.getvalue()
@@ -518,7 +518,7 @@ class Post(Document):
             disliked = True if claims and user in self.disliked_by  else False
             collections = Collections.objects(active=True,user=claims.get('user_id')).first()
             if collections and self in collections.posts:
-                    # print(data.to_json(claims))
+                    # logging.info(data.to_json(claims))
                 collection =True
             else:
                 collection =False
@@ -658,7 +658,7 @@ class Collections(Document):
         if data and claims.get('user_id',False):
             my_collections=Collections.objects(active=True,user=claims.get('user_id')).first()
             post=Post.objects(id=data.get('post_id')).first()
-            # print(Post.objects(id=data.get('post_id')).to_json())
+            # logging.info(Post.objects(id=data.get('post_id')).to_json())
             if my_collections:
                 collection_list=list(set(my_collections.posts))
                 collection_list.append(post)
@@ -670,7 +670,7 @@ class Collections(Document):
                 posts=[post]
                 my_collections=Collections(user=user,posts=posts)
             my_collections.save()
-            # print(my_collections.to_json(claims))
+            # logging.info(my_collections.to_json(claims))
             return True
         else:
             return False
@@ -681,11 +681,11 @@ class Collections(Document):
             if my_collections:
                 post=Post.objects(id=data['post_id'],active=True).first()
                 if post:
-                    # print(post.to_json(claims))
+                    # logging.info(post.to_json(claims))
                     my_collections.posts.remove(post)
                     my_collections.updated_time=datetime.datetime.now()
                     my_collections.save()
-                    print(len(my_collections.posts))
+                    
                     return True
             return False
         else:
@@ -716,5 +716,5 @@ def send_mail(mail_obj,msg):
         mail_obj.send(msg)
         return True
     except Exception as error :
-        print(error)
+        logging.info(error)
         return False     
