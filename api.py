@@ -30,7 +30,7 @@ config.read(os.path.abspath(os.path.join(dir_name+'//app.cfg')))
 
 # DB
 DB_URI = str(config['DB'].get('URI').strip().replace("'",""))
-#app.config["MONGODB_HOST"] = DB_URI
+app.config["MONGODB_HOST"] = DB_URI
 #JWT
 app.config['JWT_SECRET_KEY'] = config['JWT'].get('JWT_SECRET_KEY').strip()
 app.config['JWT_ERROR_MESSAGE_KEY'] = config['JWT'].get('JWT_ERROR_MESSAGE_KEY').strip()
