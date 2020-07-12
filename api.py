@@ -218,8 +218,7 @@ def validate_forgot_password_email():
 
         return jsonify({'code': 400,'status': is_valid})
     except Exception as e:
-        import traceback
-        logging.info(traceback.format_exc())
+        logging.info(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/auth/updatepassword',methods = ['POST'])
@@ -238,8 +237,7 @@ def validate_otp_update_forgot_password():
                 return jsonify({'code': 400,'status': is_valid})
         return jsonify({'code': 400,'status': 'Update Failed'})
     except Exception as e:
-        import traceback
-        logging.info(traceback.format_exc())
+        logging.info(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 @app.route('/auth/validate/',methods = ['GET'])
 @jwt_optional
