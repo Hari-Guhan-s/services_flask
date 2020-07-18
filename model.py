@@ -587,7 +587,12 @@ class Post(Document):
     def view_all_post(self,data,claims):
         if claims:
             skip_count = int(data.get('skip_count',0))
-            posts =Post.objects(active=True,privacy='Public').order_by('-created_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
+            location = data.get('location',False)
+            distance = data.get('location_max_distance',10)
+            if location and distance:
+                posts =Post.objects(active=True,privacy='Public',location__near=location,location__max_distance=distance).order_by('-created_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
+            else:
+                posts =Post.objects(active=True,privacy='Public').order_by('-created_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
             if posts:
                 return [post.to_json(claims) for post in posts ]
             return False
