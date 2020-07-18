@@ -133,7 +133,7 @@ def signup():
             return jsonify({'code': 400,'status': error})
             disconnect(alias='around')
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
         disconnect(alias='around')
 
@@ -161,7 +161,7 @@ def signup_verify():
         disconnect(alias='around')
             
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
         disconnect(alias='around')
           
@@ -177,7 +177,7 @@ def validate_username():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': is_valid})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'}) 
     
 @app.route('/validateemail',methods = ['POST'])
@@ -192,7 +192,7 @@ def validate_email():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': is_valid})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 
@@ -218,7 +218,7 @@ def validate_forgot_password_email():
 
         return jsonify({'code': 400,'status': is_valid})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/auth/updatepassword',methods = ['POST'])
@@ -237,7 +237,7 @@ def validate_otp_update_forgot_password():
                 return jsonify({'code': 400,'status': is_valid})
         return jsonify({'code': 400,'status': 'Update Failed'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 @app.route('/auth/validate/',methods = ['GET'])
 @jwt_optional
@@ -253,7 +253,7 @@ def validate_session():
                 return jsonify({'code': 200,'status': 'Valid'}),200
             return jsonify({'code': 400,'status': 'Invalid'}),400
         except Exception as e:
-            logging.info(e)
+            logging.error(e)
             return jsonify({'code': 500,'status': 'Internal Server Error'})
     return jsonify({'code': 400,'status': 'Invalid'}),400
     
@@ -262,7 +262,7 @@ def validate_session():
 @cross_origin()
 def signin():
     requestbody =json.loads(request.data)
-    logging.info('requestbody',requestbody)
+    
     try:
         connect(alias='around')
         user=User()
@@ -283,9 +283,9 @@ def signin():
 
         return jsonify({'code': 400,'status': 'Email or Password is incorrect.'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         import traceback
-        logging.info(traceback.format_exc(),"except")
+        logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 
@@ -297,7 +297,7 @@ def verify_signin():
         connect(alias='around')
         user=User()
         is_valid = user.validate_sign_in(requestbody['email'],requestbody['password'],is_otp_verify=True)
-        logging.info(is_valid)
+        
         is_valid_otp = user.validate_otp_time_limit(requestbody['email'],'verify_signup')
         if(is_valid == True and is_valid_otp==True):
             if user.validate_otp_for_signup(requestbody):
@@ -310,7 +310,7 @@ def verify_signin():
             return jsonify({'code': 400,'status': 'OTP Generated got expired!!'})
         return jsonify({'code': 400,'status': 'Email or Password is incorrect.'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 
@@ -376,22 +376,23 @@ def save_post():
     except Exception as e:
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
-@app.route('/post/all/',methods = ['GET'])
+@app.route('/post/all/',methods = ['POST'])
 @jwt_required
 @cross_origin()
 def view_all_post():
     try:
         claims = get_jwt_claims()
         connect(alias='around')
+        requestbody =json.loads(request.data)
         post=Post()
-        is_valid = post.view_all_post(claims)
+        is_valid = post.view_all_post(requestbody,claims)
         if is_valid:
             return jsonify({'code': 200,'status': 'Success','posts' :is_valid})
         return jsonify({'code': 400,'status': 'No Posts','posts':[]})
     except Exception as e:
         import traceback
-        logging.info(traceback.format_exc(),"except")
-        # logging.info(e,"error:")
+        logging.error(traceback.format_exc())
+        
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 
@@ -410,7 +411,7 @@ def get_my_post():
             return jsonify({'code': 200,'status': 'Success','posts' :my_posts})
         return jsonify({'code': 400,'status': 'No Posts','posts':[]})
     except Exception as e:
-        logging.info(e,"error:")
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
     
@@ -439,7 +440,7 @@ def view_post(post_id):
             return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         import traceback
-        logging.info(traceback.format_exc(),"except")
+        logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
     
@@ -459,7 +460,7 @@ def delete_post():
             return jsonify({'code': 400,'status': 'Post already deleted'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 '''like object services
@@ -479,7 +480,7 @@ def like_post():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 @app.route('/post/dislike',methods = ['POST'])
@@ -496,7 +497,7 @@ def dislike_post():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/hashtag/<tag>',methods = ['GET'])
@@ -512,7 +513,7 @@ def get_hashtag(tag):
             return jsonify({'code': 200,'status': 'Success','data':res})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        logging.info(traceback.format_exc())
+        logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 '''search services'''
@@ -528,7 +529,7 @@ def search():
         is_valid = user.search(requestbody,claims)
         return jsonify({'code': 200,'status': 'Success','data':is_valid})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Something went wrong'})
 
 '''Profile services'''
@@ -546,7 +547,7 @@ def profile_upload():
             return jsonify(is_valid)
         return jsonify({'code': 500,'status': 'Something went wrong'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Something went wrong'})
     
 @app.route('/profile/follow',methods = ['POST'])
@@ -563,7 +564,7 @@ def profile_follow():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 500,'status': 'Something went wrong'})
     except Exception as e:
-        logging.info(traceback.format_exc())
+        logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Something went wrong'})
 
 @app.route('/profile/block',methods = ['POST'])
@@ -580,7 +581,7 @@ def accept_follow():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 500,'status': 'Something went wrong'})
     except Exception as e:
-        logging.info(traceback.format_exc())
+        logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Something went wrong'})
 
 '''Comment Service'''
@@ -598,7 +599,7 @@ def add_comment():
             return jsonify(is_valid)
         return jsonify({'code': 500,'status': 'Something went wrong'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Something went wrong'})
 
 @app.route('/comment/like',methods = ['POST'])
@@ -615,7 +616,7 @@ def like_comment():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
     
 @app.route('/comment/dislike',methods = ['POST'])
@@ -632,7 +633,7 @@ def dislike_comment():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/users',methods = ['GET'])
@@ -648,7 +649,7 @@ def get_users():
             return jsonify({'code': 200,'status': 'Success','users':res})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/media/<media_id>',methods = ['GET'])
@@ -666,7 +667,7 @@ def get_media(media_id):
             response.headers["Content-Disposition"] = "attachment; filename={}".format(res.get('filename'))
             return response
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         abort(404)
 
 @app.route('/profile/<profile_id>',methods = ['GET'])
@@ -684,7 +685,7 @@ def get_profile(profile_id):
             response.headers["Content-Disposition"] = "attachment; filename={}".format(res.get('filename'))
             return response
     except Exception as e:
-        logging.info(e)
+        logging.error(e)
         abort(404)
 
 @app.route('/collection',methods = ['GET','POST'])
@@ -711,7 +712,7 @@ def get_add_collections():
             return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         import traceback
-        logging.info(traceback.format_exc(),"except")
+        logging.error(traceback.format_exc(),"except")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/collection/remove',methods = ['POST'])
@@ -732,7 +733,7 @@ def remove_from_collection():
             return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         import traceback
-        logging.info(traceback.format_exc(),"except")
+        logging.error(traceback.format_exc(),"except")
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 

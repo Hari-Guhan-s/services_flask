@@ -13,6 +13,7 @@ from flask import current_app
 from flask_mail import Message
 import configparser
 import os
+import logging
 
 #configuration reader
 config_param = configparser.ConfigParser()
@@ -23,6 +24,7 @@ config_param.read(os.path.abspath(os.path.join(dir_name+'//app.cfg')))
 limit = config_param['General'].getint('limit')
 offset = config_param['General'].getint('offset')
 resend_password_time_limit= config_param['General'].getint('resend_password_time_limit')
+posts_view_threshold = config_param['General'].getint('posts_view_threshold')
 config={}
 config['URL'] =config_param['General'].get('URL').strip()
 
@@ -211,7 +213,7 @@ class User(Document):
                         msg.html="<p>Hi,</p><br/>Please Use OTP:"+str(otp)+" for your signup request.<br/>Please note that the OTP expires in 5 minutes. <br/><br/><br/>Thanks,<br/>Travellerspedia Team" 
                     if executor:
                         future=executor.submit(send_mail,mail_obj,msg)
-                        logging.info (future,"==================>Return of Async Mail executor")
+                        logging.info(future)
                     else:
                         
                         send_mail(mail_obj,msg)
@@ -219,7 +221,7 @@ class User(Document):
                 else:
                     return False
         except Exception as e:  
-            logging.info(e)
+            logging.error(e)
             return False
     
 
@@ -582,9 +584,10 @@ class Post(Document):
             return False
         return False
     
-    def view_all_post(self,claims):
+    def view_all_post(self,data,claims):
         if claims:
-            posts =Post.objects(active=True,privacy='Public').order_by('-created_time')
+            skip_count = int(data.get('skip_count',0))
+            posts =Post.objects(active=True,privacy='Public').order_by('-created_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
             if posts:
                 return [post.to_json(claims) for post in posts ]
             return False
@@ -707,14 +710,10 @@ class Collections(Document):
         return False
 
 
-
-
-
-
 def send_mail(mail_obj,msg):
     try:
         mail_obj.send(msg)
         return True
     except Exception as error :
-        logging.info(error)
+        logging.error(error)
         return False     
