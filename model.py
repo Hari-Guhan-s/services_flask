@@ -588,9 +588,11 @@ class Post(Document):
         if claims:
             skip_count = int(data.get('skip_count',0))
             location = data.get('location',False)
-            distance = data.get('location_max_distance',10)
+            distance = int(data.get('location_max_distance',0)) if int(data.get('location_max_distance',0)) else 10
+            
             if location and distance:
-                posts =Post.objects(active=True,privacy='Public',location__near=location,location__max_distance=distance).order_by('-created_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
+                
+                posts =Post.objects(active=True,privacy='Public',location__within_spherical_distance =(location,distance/6371)).order_by('-created_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
             else:
                 posts =Post.objects(active=True,privacy='Public').order_by('-created_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
             if posts:
@@ -713,6 +715,37 @@ class Collections(Document):
             data={'user':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'posts':my_posts}
             return data
         return False
+
+
+# class UserActivity(Document):
+#     user = ReferenceField(User,required=True)
+#     description = StringField(required=True,default='')
+#     post_id = ReferenceField(Post)
+#     collection_id = ReferenceField(Collections)
+#     comment_id = ReferenceField(Comment)
+#     profile_id = ReferenceField(Profile)
+#     media_id = ReferenceField(MediaAttachment)
+#     created_time = DateTimeField(default=datetime.datetime.now(),required=True)
+#     updated_time = DateTimeField(default=datetime.datetime.now())
+#     active = BooleanField(default=True)
+
+#     def add_activity(self,data):
+#         if data and data.get('user_id',None):
+#             activity=UserActivity()
+#             user=data.get('user_id',None)
+#             post=data.get('post_id',None)
+#             collection=data.get('collection_id',None)
+#             comment=data.get('comment_id',None)
+#             action=data.get('action',None)
+
+#             if user and post and collection:
+#                 description = 'you have added '+str(post.title)+' post to collection'
+#             elif user and post and comment:
+#                 description = 'you have commented'+str(post.title)+'post'
+#                 if data.get('collection_id',None):
+                
+#                     # post=Post.objects(id=data.get('post_id')).first()
+#                     activity.post_id=data.get('collection_id',None)
 
 
 def send_mail(mail_obj,msg):
