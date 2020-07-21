@@ -252,8 +252,8 @@ class User(Document):
         profile = Profile.objects(user= self).first()
         user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False}
-        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id)}
+        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False,'id':''}
     
     def search(self,search,claims):
         if search.get('search') and claims:
