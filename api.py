@@ -30,7 +30,7 @@ dir_name=os.path.dirname(os.path.abspath(__file__))
 config.read(os.path.abspath(os.path.join(dir_name+'//app.cfg')))
 
 # DB
-DB_URI = str(config['DB'].get('URI').strip().replace("'",""))
+DB_URI = 'mongodb+srv://django:80sfDmuxz8ne6S6O@heroku-fb2pzxs9.o862o.mongodb.net/heroku_fb2pzxs9?authSource=admin&replicaSet=atlas-9ktnhl-shard-0&w=majority&readPreference=primary&retryWrites=true&ssl=true'
 app.config["MONGODB_HOST"] = DB_URI
 #JWT
 app.config['JWT_SECRET_KEY'] = config['JWT'].get('JWT_SECRET_KEY').strip()
@@ -66,7 +66,7 @@ CORS(app, resources={r"*": {"origins": "*"}})
 
 @jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
-    connect(alias='around')
+    connect(host=DB_URI)
     jti = decrypted_token['jti']
     token=TokenBlacklist()
     if token.validate_token(token=jti):
@@ -105,7 +105,7 @@ def signup():
         return jsonify({'code': 400,'status': 'Password must be minimum 8 characters'})
     requestbody['password']= sha256.hash(requestbody['password'])   
     try:
-        connect(alias='around')
+        connect(host=DB_URI)
         user=User()
         is_valid=user.validate_record(requestbody['username'],requestbody['email'],requestbody['password'],requestbody['fname'],requestbody['lname'])
         if(is_valid == True):
@@ -123,7 +123,7 @@ def signup():
 
             else:
                 return jsonify({'code': 400,'status': is_valid_otp})
-            disconnect(alias='around')
+            disconnect(host=DB_URI)
 
             # access_token = create_access_token(identity = new_user.email)
             # refresh_token = create_refresh_token(identity = new_user.email)
@@ -131,18 +131,18 @@ def signup():
         else:
             error = is_valid
             return jsonify({'code': 400,'status': error})
-            disconnect(alias='around')
+            disconnect(host=DB_URI)
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-        disconnect(alias='around')
+        disconnect(host=DB_URI)
 
 @app.route('/auth/signup/verify',methods = ['POST'])
 def signup_verify():
     requestbody =json.loads(request.data)
     
     try:
-        connect(alias='around')
+        connect(host=DB_URI)
         user=User()
         is_valid = user.validate_inactive_user_email(requestbody['email'])
         
@@ -158,19 +158,19 @@ def signup_verify():
             return jsonify({'code': 400,'status': 'OTP Generated got expired!!'})
         
         return jsonify({'code': 400,'status': is_valid})
-        disconnect(alias='around')
+        disconnect(host=DB_URI)
             
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-        disconnect(alias='around')
+        disconnect(host=DB_URI)
           
 @app.route('/validateusername',methods = ['POST'])
 @cross_origin()
 def validate_username():
     requestbody =json.loads(request.data)
     try:
-        connect(alias='around')
+        connect(host=DB_URI)
         user=User()
         is_valid = user.validate_username(requestbody['username'])
         if(is_valid == True):
@@ -185,7 +185,7 @@ def validate_username():
 def validate_email():
     requestbody =json.loads(request.data)
     try:
-        connect(alias='around')
+        connect(host=DB_URI)
         user=User()
         is_valid = user.validate_email(requestbody['email'])
         if(is_valid == True):
@@ -204,7 +204,7 @@ def validate_forgot_password_email():
     requestbody =json.loads(request.data)
     try:
         
-        connect(alias='around')
+        connect(host=DB_URI)
         user=User()
         is_valid = user.validate_forgot_password_email(requestbody['email'])
         
@@ -226,7 +226,7 @@ def validate_forgot_password_email():
 def validate_otp_update_forgot_password():
     requestbody =json.loads(request.data)
     try:
-        connect(alias='around')
+        connect(host=DB_URI)
         user=User()
         is_valid_otp = user.validate_otp_time_limit(requestbody['email'])
         if (is_valid_otp==True):
@@ -246,7 +246,7 @@ def validate_session():
     claims = get_jwt_claims()
     if claims:
         try:
-            connect(alias='around')
+            connect(host=DB_URI)
             user=User()
             is_valid = user.check_user_session(claims)
             if is_valid:
@@ -264,7 +264,7 @@ def signin():
     requestbody =json.loads(request.data)
     
     try:
-        connect(alias='around')
+        connect(host=DB_URI)
         user=User()
         is_valid = user.validate_sign_in(requestbody['email'],requestbody['password'])
         if is_valid == True:
@@ -294,7 +294,7 @@ def signin():
 def verify_signin():
     requestbody =json.loads(request.data)
     try:
-        connect(alias='around')
+        connect(host=DB_URI)
         user=User()
         is_valid = user.validate_sign_in(requestbody['email'],requestbody['password'],is_otp_verify=True)
         
@@ -319,7 +319,7 @@ def verify_signin():
 @jwt_required
 @cross_origin()
 def signout():
-    connect(alias='around')
+    connect(host=DB_URI)
     jti = get_raw_jwt()['jti']
     blacklist =TokenBlacklist()
     blacklist.add_to_blacklist(jti)
@@ -330,7 +330,7 @@ def signout():
 def forgot_password():
     requestbody =json.loads(request.data)
     if requestbody:
-        connect(alias='around')
+        connect(host=DB_URI)
         user= User()
         if(user.forgot_password_otp(requestbody)):
             return jsonify({'code': 200,'status': 'Success'})
@@ -342,7 +342,7 @@ def forgot_password():
 def auth_guard():
     requestbody =json.loads(request.data)
     if requestbody:
-        connect(alias='around')
+        connect(host=DB_URI)
         if(1==1):
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
@@ -352,7 +352,7 @@ def auth_guard():
 def reset_password():
     requestbody =json.loads(request.data)
     if requestbody:
-        connect(alias='around')
+        connect(host=DB_URI)
         user= User()
         if(user.reset_password(requestbody)):
             return jsonify({'code': 200,'status': 'Success'})
@@ -367,7 +367,7 @@ def save_post():
     requestbody =json.loads(request.data)
     try:
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         post=Post()
         is_valid = post.validate_post(requestbody,claims)
         if is_valid:
@@ -382,7 +382,7 @@ def save_post():
 def view_all_post():
     try:
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         requestbody =json.loads(request.data)
         post=Post()
         is_valid = post.view_all_post(requestbody,claims)
@@ -404,7 +404,7 @@ def get_my_post():
     
         
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         post=Post()
         my_posts=post.get_my_post(claims)
         if my_posts and len(my_posts)>0:
@@ -424,7 +424,7 @@ def view_post(post_id):
         if request.method == 'POST':
             requestbody =json.loads(request.data)
             claims = get_jwt_claims()
-            connect(alias='around')
+            connect(host=DB_URI)
             post=Post()
             is_valid = post.edit_post(post_id,requestbody,claims)
             if is_valid:
@@ -432,7 +432,7 @@ def view_post(post_id):
             return jsonify({'code': 400,'status': 'Something went wrong.'})
         else:
             claims = get_jwt_claims()
-            connect(alias='around')
+            connect(host=DB_URI)
             post=Post()
             is_valid = post.view_post(post_id,claims)
             if is_valid:
@@ -452,7 +452,7 @@ def delete_post():
         post_id = json.loads(request.data).get('post',False)
         if post_id:
             claims = get_jwt_claims()
-            connect(alias='around')
+            connect(host=DB_URI)
             post=Post()
             is_valid = post.delete_post(post_id,claims)
             if is_valid:
@@ -473,7 +473,7 @@ def like_post():
     requestbody =json.loads(request.data)
     try:
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         post=Post()
         res = post.like_post(requestbody,claims)
         if res:
@@ -490,7 +490,7 @@ def dislike_post():
     requestbody =json.loads(request.data)
     try:
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         post=Post()
         res = post.dislike_post(requestbody,claims)
         if res:
@@ -506,7 +506,7 @@ def dislike_post():
 def get_hashtag(tag):
     try:
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         post=Post()
         res = post.get_post_hashtag(tag,claims)
         if res:
@@ -524,7 +524,7 @@ def search():
     try:
         requestbody =json.loads(request.data)
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         user=User()
         is_valid = user.search(requestbody,claims)
         return jsonify({'code': 200,'status': 'Success','data':is_valid})
@@ -540,7 +540,7 @@ def profile_upload():
     try:
         requestbody =json.loads(request.data)
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         profile=Profile()
         is_valid = profile.upload_image(requestbody,claims)
         if is_valid:
@@ -557,7 +557,7 @@ def profile_follow():
     try:
         requestbody =json.loads(request.data)
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         profile=Profile()
         is_valid = profile.follow_user(requestbody,claims)
         if is_valid:
@@ -574,7 +574,7 @@ def accept_follow():
     try:
         requestbody =json.loads(request.data)
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         profile=Profile()
         is_valid = profile.block_user(requestbody,claims)
         if is_valid:
@@ -592,7 +592,7 @@ def add_comment():
     try:
         requestbody =json.loads(request.data)
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         comment=Comment()
         is_valid = comment.add_comment(requestbody,claims)
         if is_valid:
@@ -609,7 +609,7 @@ def like_comment():
     requestbody =json.loads(request.data)
     try:
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         comment=Comment()
         res = comment.like_comment(requestbody,claims)
         if res:
@@ -626,7 +626,7 @@ def dislike_comment():
     requestbody =json.loads(request.data)
     try:
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         comment=Comment()
         res = comment.dislike_comment(requestbody,claims)
         if res:
@@ -642,7 +642,7 @@ def dislike_comment():
 def get_users():
     try:
         claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         user=User()
         res = user.get_users(claims)
         if res:
@@ -657,7 +657,7 @@ def get_users():
 def get_media(media_id):
     try:
         #claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         media=MediaAttachment()
         res = media.download_media(media_id)
         if res:
@@ -675,7 +675,7 @@ def get_media(media_id):
 def get_profile(profile_id):
     try:
         #claims = get_jwt_claims()
-        connect(alias='around')
+        connect(host=DB_URI)
         profile=Profile()
         res = profile.download_profile(profile_id)
         if res:
@@ -696,7 +696,7 @@ def get_add_collections():
         if request.method == 'POST':
             requestbody =json.loads(request.data)
             claims = get_jwt_claims()
-            connect(alias='around')
+            connect(host=DB_URI)
             collection=Collections()
             is_valid = collection.add_to_collections(requestbody,claims)
             if is_valid:
@@ -704,7 +704,7 @@ def get_add_collections():
             return jsonify({'code': 400,'status': 'Something went wrong.'})
         else:
             claims = get_jwt_claims()
-            connect(alias='around')
+            connect(host=DB_URI)
             collection=Collections()
             is_valid = collection.get_my_collections(claims)
             if is_valid:
@@ -723,7 +723,7 @@ def remove_from_collection():
         if request.method == 'POST':
             requestbody =json.loads(request.data)
             claims = get_jwt_claims()
-            connect(alias='around')
+            connect(host=DB_URI)
             collection=Collections()
             is_valid = collection.remove_from_collections(requestbody,claims)
             if is_valid:
