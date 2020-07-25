@@ -545,8 +545,9 @@ class Post(Document):
     
     def get_my_post(self,claims):
         if claims:
+            skip_count = int(data.get('skip_count',0))
             # author = User.objects(id=claims['user_id']).first()
-            posts =Post.objects(active=True,privacy='Public',author=claims['user_id']).order_by('-created_time')
+            posts =Post.objects(active=True,privacy='Public',author=claims['user_id']).order_by('-created_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
             if posts:
                 return [post.to_json(claims) for post in posts ]
         return False
@@ -701,9 +702,10 @@ class Collections(Document):
         else:
             return False
 
-    def get_my_collections(self,claims):
+    def get_my_collections(self,data,claims):
         if claims.get('user_id',False):
-            my_collections=Collections.objects(active=True,user=claims.get('user_id')).first()
+            skip_count = int(data.get('skip_count',0))
+            my_collections=Collections.objects(active=True,user=claims.get('user_id'),slice__posts=[skip_count,int(posts_view_threshold)+skip_count]).first()
             if my_collections:            
                 return my_collections.to_json(claims)
         return False

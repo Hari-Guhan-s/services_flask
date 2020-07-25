@@ -396,7 +396,7 @@ def view_all_post():
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 
-@app.route('/post/my_post',methods = ['GET'])
+@app.route('/post/my_post',methods = ['POST'])
 @jwt_optional
 @cross_origin()
 def get_my_post():
@@ -406,7 +406,8 @@ def get_my_post():
         claims = get_jwt_claims()
         connect(host=DB_URI)
         post=Post()
-        my_posts=post.get_my_post(claims)
+        requestbody =json.loads(request.data)
+        my_posts=post.get_my_post(requestbody,claims)
         if my_posts and len(my_posts)>0:
             return jsonify({'code': 200,'status': 'Success','posts' :my_posts})
         return jsonify({'code': 400,'status': 'No Posts','posts':[]})
@@ -688,10 +689,10 @@ def get_profile(profile_id):
         logging.error(e)
         abort(404)
 
-@app.route('/collection',methods = ['GET','POST'])
+@app.route('/collection',methods = ['POST'])
 @jwt_optional
 @cross_origin()
-def get_add_collections():
+def add_collections():
     try:
         if request.method == 'POST':
             requestbody =json.loads(request.data)
@@ -703,12 +704,31 @@ def get_add_collections():
                 return jsonify({'code': 200,'status': 'Success','data' :is_valid})
             return jsonify({'code': 400,'status': 'Something went wrong.'})
         else:
+            
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc(),"except")
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+
+@app.route('/collection/my_collection',methods = ['POST'])
+@jwt_optional
+@cross_origin()
+def get_collections():
+    try:
+        if request.method == 'POST':
+            requestbody =json.loads(request.data)
             claims = get_jwt_claims()
             connect(host=DB_URI)
             collection=Collections()
-            is_valid = collection.get_my_collections(claims)
+            is_valid = collection.get_my_collections(requestbody,claims)
             if is_valid:
                 return jsonify({'code': 200,'status': 'Success','data' :is_valid})
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        else:
+            claims = get_jwt_claims()
+            connect(host=DB_URI)
+            collection=Collections()
             return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         import traceback
