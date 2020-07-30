@@ -646,9 +646,7 @@ def get_users():
         connect(host=DB_URI)
         user=User()
         res = user.get_users(claims)
-        if res:
-            return jsonify({'code': 200,'status': 'Success','users':res})
-        return jsonify({'code': 400,'status': 'Something went wrong.'})
+        return jsonify({'code': 200,'status': 'Success','users':res})
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
