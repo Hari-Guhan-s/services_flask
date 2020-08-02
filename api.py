@@ -1,5 +1,5 @@
 import uuid
-from model  import *
+from model.model  import *
 from flask import Flask,request ,redirect, url_for,make_response,abort
 from flask_cors import CORS, cross_origin
 from flask import jsonify
@@ -19,6 +19,7 @@ import os
 from flask import Flask
 from datetime import datetime
 import logging, logging.config, yaml
+import pathlib
 
 app = Flask(__name__)
 #hari added
@@ -26,12 +27,14 @@ mail=Mail(app)
 executor = Executor(app)
 #configuration reader
 config = configparser.ConfigParser()
-dir_name=os.path.dirname(os.path.abspath(__file__))
-config.read(os.path.abspath(os.path.join(dir_name+'//app.cfg')))
+dir_name=pathlib.Path(__file__).absolute().parent
+dir_name=dir_name.joinpath('config')
+dir_name=dir_name.joinpath('app.cfg')
+config.read(dir_name)
 
 # DB
 DB_URI = 'mongodb+srv://django:80sfDmuxz8ne6S6O@heroku-fb2pzxs9.o862o.mongodb.net/heroku_fb2pzxs9?authSource=admin&replicaSet=atlas-9ktnhl-shard-0&w=majority&readPreference=primary&retryWrites=true&ssl=true'
-app.config["MONGODB_HOST"] = DB_URI
+app.config["MONGODB_HOST"] = config['DB'].get('URI').strip().replace("'","").replace('"','')
 #JWT
 app.config['JWT_SECRET_KEY'] = config['JWT'].get('JWT_SECRET_KEY').strip()
 app.config['JWT_ERROR_MESSAGE_KEY'] = config['JWT'].get('JWT_ERROR_MESSAGE_KEY').strip()
@@ -708,7 +711,7 @@ def add_collections():
             return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         import traceback
-        logging.error(traceback.format_exc(),"except")
+        logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/collection/my_collection',methods = ['POST'])
@@ -732,7 +735,7 @@ def get_collections():
             return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         import traceback
-        logging.error(traceback.format_exc(),"except")
+        logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/collection/remove',methods = ['POST'])
@@ -753,13 +756,34 @@ def remove_from_collection():
             return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         import traceback
-        logging.error(traceback.format_exc(),"except")
+        logging.error(traceback.format_exc())
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+
+@app.route('/activity',methods = ['GET'])
+@jwt_optional
+@cross_origin()
+def get_my_activities():
+    try:
+        if request.method == 'GET':
+            
+            claims = get_jwt_claims()
+            connect(host=DB_URI)
+            activity=UserActivity()
+            is_valid = activity.get_my_activity(claims)
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Success','data' :is_valid})
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        else:
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 
 if __name__ == '__main__':
     db = MongoEngine(app)
-    logging.config.dictConfig(yaml.load(open('logging.conf')))
+    logging.config.dictConfig(yaml.load(open('config//logging.conf')))
     logfile= logging.getLogger('file')
     logfile.debug("Debug FILE")
     app.run(debug=True, use_reloader=True)
