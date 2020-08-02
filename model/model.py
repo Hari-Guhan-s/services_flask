@@ -274,7 +274,7 @@ class User(Document):
     
     def get_users(self,claims):
         if claims:
-            users = User.objects(active=True)
+            users = User.objects(id__ne=claims.get('user_id'),active=True)
             return [user.to_json(claims) for user in users]
         return []
 
