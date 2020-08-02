@@ -10,3 +10,4 @@ Flask
 gunicorn
 flask_mail
 dnspython
+PyYAML

@@ -17,7 +17,7 @@ from flask import current_app
 import configparser
 import os
 from flask import Flask
-from datetime import datetime
+from datetime import datetime,timedelta 
 import logging, logging.config, yaml
 import pathlib
 
@@ -271,8 +271,9 @@ def signin():
         user=User()
         is_valid = user.validate_sign_in(requestbody['email'],requestbody['password'])
         if is_valid == True:
-            access_token = create_access_token(identity = requestbody['email'])
-            refresh_token = create_refresh_token(identity = requestbody['email'])
+            expires = timedelta(days=30)
+            access_token = create_access_token(identity = requestbody['email'],expires_delta=expires)
+            refresh_token = create_refresh_token(identity = requestbody['email'],expires_delta=expires)
             user=User.objects(email=requestbody['email']).first()
             res = {'code': 200,'status': 'Success','access-token':access_token,'refresh-token':refresh_token}
             res.update(user.to_json())
@@ -649,9 +650,7 @@ def get_users():
         connect(host=DB_URI)
         user=User()
         res = user.get_users(claims)
-        if res:
-            return jsonify({'code': 200,'status': 'Success','users':res})
-        return jsonify({'code': 400,'status': 'Something went wrong.'})
+        return jsonify({'code': 200,'status': 'Success','users':res})
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
