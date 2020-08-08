@@ -744,7 +744,7 @@ class Collections(Document):
             my_collections=Collections.objects(active=True,user=claims.get('user_id')).fields(slice__posts=[skip_count,int(posts_view_threshold)+skip_count]).first()
             if my_collections:            
                 return my_collections.to_json(claims)
-        return False
+        return []
     
     def to_json(self,claims):
         if self.active and claims:

@@ -1,5 +1,5 @@
 import uuid
-from model.model  import *
+from model.model import *
 from flask import Flask,request ,redirect, url_for,make_response,abort
 from flask_cors import CORS, cross_origin
 from flask import jsonify
@@ -724,9 +724,7 @@ def get_collections():
             connect(host=DB_URI)
             collection=Collections()
             is_valid = collection.get_my_collections(requestbody,claims)
-            if is_valid:
-                return jsonify({'code': 200,'status': 'Success','data' :is_valid})
-            return jsonify({'code': 400,'status': 'Something went wrong.'})
+            return jsonify({'code': 200,'status': 'Success','data' :is_valid})
         else:
             claims = get_jwt_claims()
             connect(host=DB_URI)
