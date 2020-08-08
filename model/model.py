@@ -256,8 +256,8 @@ class User(Document):
         profile = Profile.objects(user= self).first()
         user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id)}
-        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False,'id':''}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or ''}
+        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False,'id':'','gender':''}
     
     def search(self,search,claims):
         if search.get('search') and claims:
@@ -292,6 +292,7 @@ class User(Document):
     signup_otp = StringField()
     last_forgot_password_mail_sent = DateTimeField()
     last_signup_mail_sent = DateTimeField()
+    gender = StringField(default='')
 class Profile(Document):
     user = ReferenceField(User)
     followers = ListField(ReferenceField(User))
@@ -376,6 +377,7 @@ class Profile(Document):
             user.last_name = req.get('last_name')
             user.email = req.get('email')
             user.phone = req.get('phone')
+            user.gender =req.get('gender')
             user.save()
             return user.to_json(claims)
         return False
