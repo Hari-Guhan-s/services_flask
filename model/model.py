@@ -704,6 +704,19 @@ class Post(Document):
             posts =Post.objects(active=True,hashtags=tag)
             return [post.to_json(claims) for post in posts]
         return False
+    
+    def view_near_by(self,req,claims):
+        location =[]
+        if req.get('location') and claims:
+            location = req.get('location')
+        elif req.get('post') and claims:
+            post = Post.objects(id=req.get('post'),active=True).first()
+            location = post.location
+        if location:
+            posts = Post.objects[:20](id=req.get('post'),active=True,privacy='Public',location__within_spherical_distance=[location,req.get('radius') if req.get('radius') else 100],id__ne=req.get('post'))
+            return [post.to_json(claims) for post in posts]
+        return []    
+            
 
 
 class Collections(Document):
