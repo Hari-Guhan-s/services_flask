@@ -778,6 +778,30 @@ def get_my_activities():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
+    
+@app.route('/profile/update',methods = ['POST'])
+@jwt_optional
+@cross_origin()
+def update_profile():
+    try:
+        if request.method == 'POST':
+            claims = get_jwt_claims()
+            connect(host=DB_URI)
+            requestbody =json.loads(request.data)
+            profile=Profile()
+            is_valid = profile.edit_profile(requestbody,claims)
+            if is_valid:
+                is_valid.update({'code': 200,'status': 'Success'}) 
+                return jsonify(is_valid)
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        else:
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc())
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    finally:
+        disconnect()
 
 
 if __name__ == '__main__':

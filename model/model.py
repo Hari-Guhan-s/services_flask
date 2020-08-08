@@ -367,8 +367,19 @@ class Profile(Document):
                 return False
             return False
         return False
-
-
+    
+    def edit_profile(self,req,claims=None):
+        if req and claims:
+            user = User.objects(id=claims.get('user_id')).first()
+            profile = Profile.objects(user=user).first()
+            user.first_name = req.get('first_name')
+            user.last_name = req.get('last_name')
+            user.email = req.get('email')
+            user.phone = req.get('phone')
+            user.save()
+            return user.to_json(claims)
+        return False
+            
 class TokenBlacklist(Document):
     
     token = StringField(required=True,primary_key=True)
