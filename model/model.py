@@ -271,7 +271,8 @@ class User(Document):
             value = search.get('search')
             user =  claims.get('user_id')
             results = User.objects[:5].filter((Q(email =value) | Q(phone = value) | Q(user_name__istartswith = value) | Q(first_name__istartswith = value)) & Q(active = True))
-            return [res.to_json(claims) for res in results  ]
+            posts = Post.objects[:5](hashtags=search.get('search'),privacy='Public')
+            return{'hashtag':[post.to_json(claims) for post in posts],'user':[res.to_json(claims) for res in results ]}
         return False
     
     def get_user(self,claims):
