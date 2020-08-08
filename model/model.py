@@ -259,6 +259,13 @@ class User(Document):
             return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or ''}
         return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False,'id':'','gender':''}
     
+    def to_detail_json(self,claims=None):
+        profile = Profile.objects(user= self).first()
+        user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
+        if self.active:
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','first_name':self.first_name,'last_name':self.last_name,'phone':self.phone,'email':self.email,'edit': True if user == self else False}
+        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False,'id':'','gender':'','last_name':'','phone':'','email':'','edit': False}
+    
     def search(self,search,claims):
         if search.get('search') and claims:
             value = search.get('search')
@@ -380,6 +387,16 @@ class Profile(Document):
             user.gender =req.get('gender')
             user.save()
             return user.to_json(claims)
+        return False
+    
+    def view_profile(self,req,claims=None):
+        if req and claims and req.get('user_id'):
+            user = User.objects(id=claims.get('user_id')).first()
+            profile_user = User.objects(id=req.get('user_id')).first()
+            profile = Profile.objects(user=profile_user).first()
+            if user not in profile.blocklist:
+                return profile_user.to_detail_json(claims)
+            return False
         return False
             
 class TokenBlacklist(Document):
