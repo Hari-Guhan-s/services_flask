@@ -825,6 +825,27 @@ def view_profile():
     finally:
         disconnect()
 
+@app.route('/post/near',methods = ['POST'])
+@jwt_optional
+@cross_origin()
+def view_near_by():
+    try:
+        if request.method == 'POST':
+            claims = get_jwt_claims()
+            connect(host=DB_URI)
+            requestbody =json.loads(request.data)
+            post=Post()
+            is_valid = post.view_near_by(requestbody,claims)
+            return jsonify({'code': 200,'status': 'Success','data':is_valid})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc())
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    finally:
+        disconnect()
+
+
 
 if __name__ == '__main__':
     db = MongoEngine(app)
