@@ -828,7 +828,11 @@ def view_profile():
 
 if __name__ == '__main__':
     db = MongoEngine(app)
-    logging.config.dictConfig(yaml.load(open('config//logging.conf')))
+    dir_name = pathlib.Path(__file__).absolute().parent
+    dir_name = dir_name.joinpath('config')
+    dir_name = dir_name.joinpath('logging.conf')
+    print(dir_name)
+    logging.config.dictConfig(yaml.load(open(dir_name)))
     logfile= logging.getLogger('file')
     logfile.debug("Debug FILE")
     app.run(debug=True, use_reloader=True)
