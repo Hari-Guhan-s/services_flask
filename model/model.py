@@ -780,7 +780,8 @@ class Collections(Document):
     def to_json(self,claims):
         if self.active and claims:
             user= User.get_user(self,claims=claims)
-            my_posts=[post.to_json(claims) for post in set(self.posts)]
+            my_posts=[post.to_json(claims) for post in set(self.posts) if post.active]
+            
             data={'user':self.user.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'posts':my_posts}
             return data
         return False
