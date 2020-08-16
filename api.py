@@ -767,6 +767,7 @@ def get_my_activities():
             connect(host=DB_URI)
             activity=UserActivity()
             is_valid = activity.get_my_activity(claims)
+
             if is_valid:
                 return jsonify({'code': 200,'status': 'Success','data' :is_valid})
             return jsonify({'code': 400,'status': 'Something went wrong.'})
@@ -776,6 +777,8 @@ def get_my_activities():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
+    finally:
+        disconnect()
     
 @app.route('/profile/update',methods = ['POST'])
 @jwt_optional
@@ -845,6 +848,41 @@ def view_near_by():
     finally:
         disconnect()
 
+@app.route('/activity/delete',methods = ['GET','POST'])
+@jwt_optional
+@cross_origin()
+def delete_activities():
+    try:
+        if request.method == 'POST':
+            
+            claims = get_jwt_claims()
+            connect(host=DB_URI)
+            requestbody =json.loads(request.data)
+            activity=UserActivity()
+            is_valid = activity.delete_my_activity(claims,requestbody)
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Success','data' :is_valid})
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        elif request.method == 'GET':
+            claims = get_jwt_claims()
+            connect(host=DB_URI)
+            activity=UserActivity()
+            is_valid = activity.delete_my_activity(claims,'all')
+
+            if is_valid:
+                return jsonify({'code': 200,'status': 'Success','data' :is_valid})
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        
+        else:
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
+        
+    except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc())
+        return jsonify({'code': 500,'status': 'Internal Server Error'})
+    finally:
+        disconnect()
+
 
 
 if __name__ == '__main__':
@@ -852,7 +890,7 @@ if __name__ == '__main__':
     dir_name = pathlib.Path(__file__).absolute().parent
     dir_name = dir_name.joinpath('config')
     dir_name = dir_name.joinpath('logging.conf')
-    print(dir_name)
+    
     logging.config.dictConfig(yaml.load(open(dir_name)))
     logfile= logging.getLogger('file')
     logfile.debug("Debug FILE")

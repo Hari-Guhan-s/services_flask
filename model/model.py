@@ -800,31 +800,44 @@ class UserActivity(Document):
     active = BooleanField(default=True)
 
     def add_activity(self,data):
-        if data and data.get('user_id',None):
+        activity_count = UserActivity.objects(active=True,user=data.get('user_id')).count()
+        # print(activity_count, "Activity count ============================")
+        # print(activity_count,"Activity count ============================")
+        if activity_count < 20:
             activity=UserActivity()
+            # print(activity,"====>new object")
+        else:
+            activity = UserActivity.objects(user=data.get('user_id'),active=True).skip(19)
+            if activity:
+                activity=activity[0]
+            # print(activity,"====>old object")
+        if data and data.get('user_id',None):
+
             user=data.get('user_id',None)
             post=data.get('post_id',None)
             collection=data.get('collection_id',None)
             comment=data.get('comment_id',None)
             action=data.get('action',None)
             description=None
-            print(comment)
+            
             if user and post and collection and action:
                 user=User.objects(id = data.get('user_id'),active=True).first()
                 post=Post.objects(id = data.get('post_id'),active=True).first()
                 collection=Collections.objects(id = data.get('collection_id'),active=True).first()
+                user_name= str(user.first_name)+''+str(user.last_name) if user.first_name and user.last_name else str(user.first_name)
                 if user and post and collection  and action=='add':
-                    description = str(user.user_name)+' have added '+str(post.topic)+' to collection'
+                    description = user_name+' have added '+str(post.topic)+' to collection'
                 if user and post and collection  and action=='remove':
-                    description = str(user.user_name)+' have removed '+str(post.topic)+' from collection'
+                    description = user_name+' have removed '+str(post.topic)+' from collection'
                 if description:
                     activity.user=user
                     activity.post_id=post
                     activity.collection_id=collection
                     activity.description=description
                     activity.action=action
+                    activity.updated_time=datetime.datetime.now()
                     activity.save()
-                    logging.info(activity.to_json())
+                    # logging.info(activity.to_json())
                     return True
             
             elif user and comment and action :
@@ -832,58 +845,90 @@ class UserActivity(Document):
                 user=User.objects(id = data.get('user_id'),active=True).first()
                 post=Post.objects(id = data.get('post_id'),active=True).first()
                 comment =Comment.objects(active=True,id=comment).first()
-                
+                user_name = str(user.first_name) + '' + str(
+                    user.last_name) if user.first_name and user.last_name else str(user.first_name)
                 if user and post and comment  and action=='add':
-                    description = str(user.user_name)+' have commented on '+str(post.topic)
+                    description = str(user_name)+' have commented on '+str(post.topic)
                 if user and post and comment  and action=='remove':
-                    description = str(user.user_name)+' have removed the comment from'+str(post.topic)
+                    description = str(user_name)+' have removed the comment from'+str(post.topic)
                 if user and post and comment  and action=='update':
-                    description = str(user.user_name)+' have edited the comment on'+str(post.topic)
+                    description = str(user_name)+' have edited the comment on'+str(post.topic)
                 # if user and comment and action=='like':
-                #     description = str(user.user_name)+' liked the your comment '
+                #     description = str(user.profile_name)+' liked the your comment '
                 # if user and comment  and action=='dislike':
-                #     description = str(user.user_name)+' disliked your comment '
+                #     description = str(user.profile_name)+' disliked your comment '
                 if description:
                     activity.user=user if user else None
                     activity.post_id=post if post else None
                     activity.comment_id=comment if comment else None
                     activity.description=description
                     activity.action=action
+                    activity.updated_time=datetime.datetime.now()
                     activity.save()
                     # logging.info(activity.to_json())
                     return True
 
             elif user and post and action and action in ['like','dislike']:
                 user=User.objects(id = data.get('user_id'),active=True).first()
-                post=Post.objects(id = data.get('post_id'),active=True).first()    
+                post=Post.objects(id = data.get('post_id'),active=True).first()
+                user_name = str(user.first_name) + '' + str(
+                    user.last_name) if user.first_name and user.last_name else str(user.first_name)
                 if user and post and action=='like':
-                    description = str(user.user_name)+' liked '+str(post.topic)
+                    description = str(user_name)+' liked '+str(post.topic)
                 if user and post and action=='dislike':
-                    description = str(user.user_name)+' disliked '+str(post.topic)
+                    description = str(user_name)+' disliked '+str(post.topic)
                 if description:
                     activity.user=user
                     activity.post_id=post
                     activity.description=description
                     activity.action=action
+                    activity.updated_time=datetime.datetime.now()
                     activity.save()
-                    logging.info(activity.to_json())
+                    # logging.info(activity.to_json())
                     return True
             
             return False
     def get_my_activity(self,claims):
-        activity=UserActivity.objects(user=claims.get('user_id'),active=True)
+        activity=UserActivity.objects(user=claims.get('user_id'),active=True).order_by('-updated_time')     
+
         my_activities=[]
         for act in activity:
             my_activities.append({
                 'user':act.user.to_json(claims),
                 'description':act.description,
-				'id':str(act.id)
+				'id':str(act.id),
+                'updated_time':act.updated_time,
+                'post_id':str(act.post_id.id) if act.post_id else '',
+                'collection_id':str(act.collection_id.id) if act.collection_id else ''
                 
             })
+
         if my_activities:
             return my_activities
         else:
             return False
+    
+    def delete_my_activity(self,claims,data=None):
+        if claims and isinstance(data,dict):
+            activity_id=data.get('activity_id',None)
+            activity=UserActivity.objects(id=activity_id,user=claims.get('user_id'),active=True).first()
+            if activity:
+                activity.active=False
+                activity.save()
+                return True
+            else:
+                return False
+        elif claims and data=='all':
+            activity=UserActivity.objects(user=claims.get('user_id'),active=True)
+            for act in activity:
+                act.active=False
+                act.save()
+            return True
+        else:
+            return False
+
+
+
 
 
 def send_mail(mail_obj,msg):
