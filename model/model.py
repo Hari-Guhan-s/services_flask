@@ -310,22 +310,20 @@ class Profile(Document):
     blocklist =ListField(ReferenceField(User))
     blocked_by =ListField(ReferenceField(User))
     location  = PointField()
-    profile_image_orginal = FileField()
-    profile_image_small = FileField()
-    profile_image_file_name = StringField()
+    profile_image_orginal = ImageField(collection_name='profile_images')
+    profile_image_small = ImageField(collection_name='profile_images')
+    profile_crop_area= StringField()
+    
     def upload_image(self,req,claims):
         if req and claims and req.get('data'):
             author = User.objects(id=claims.get('user_id')).first()
             profile = Profile.objects(user= author).first()
             if not profile:
                 profile = Profile(user=author).save()
-            #im = Image.open(BytesIO(base64.b64decode(req.get('data'))))
-            #imgByteArrThumbnail = BytesIO()
-            #im.resize((int(im.size[0]/.2),int(im.size[1]/.2)),3).save(imgByteArrThumbnail,'PNG')
-            #logging.info(base64.b64encode(imgByteArrThumbnail.getvalue()))
             profile.profile_image_orginal=base64.b64decode(req.get('data'))
+            profile.profile_image_small = base64.b64decode(req.get('cropped'))
+            profile.profile_crop_area = req.get('crop_area')
             profile.profile_image_file_name = req.get('file_name')+'.'+req.get('file_ext')
-            #profile.profile_image_small=imgByteArrThumbnail.getvalue()
             profile.save()
             return {'code':200,'status':'Profile image uploaded successfully.'}
         return False
@@ -334,7 +332,7 @@ class Profile(Document):
         user_id = User.objects(id =user_id,active=True).first()
         media = Profile.objects(user=user_id).first()
         if media:
-            return {'filename': media.profile_image_file_name,'content':media.profile_image_orginal.read()}
+            return {'filename': media.profile_image_file_name,'content':media.profile_image_orginal.read(),'crop':media.profile_image_small.read(),'crop_area':profile_crop_area}
         return False
 
     def follow_user(self,req,claims):
@@ -802,16 +800,12 @@ class UserActivity(Document):
 
     def add_activity(self,data):
         activity_count = UserActivity.objects(active=True,user=data.get('user_id')).count()
-        # print(activity_count, "Activity count ============================")
-        # print(activity_count,"Activity count ============================")
         if activity_count < 20:
             activity=UserActivity()
-            # print(activity,"====>new object")
         else:
             activity = UserActivity.objects(user=data.get('user_id'),active=True).skip(19)
             if activity:
                 activity=activity[0]
-            # print(activity,"====>old object")
         if data and data.get('user_id',None):
 
             user=data.get('user_id',None)
