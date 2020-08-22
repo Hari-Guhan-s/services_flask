@@ -256,15 +256,16 @@ class User(Document):
         profile = Profile.objects(user= self).first()
         user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or ''}
-        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False,'id':'','gender':''}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','followers':len(profile.followers),'following':len(profile.following)}
+        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False,'id':'','gender':'','followers':0,'following':0}
     
     def to_detail_json(self,claims=None):
         profile = Profile.objects(user= self).first()
         user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
+        post = Post.objects(author=self,active=True).count()
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','first_name':self.first_name,'last_name':self.last_name,'phone':self.phone if user in profile.followers or user == self else '','email':self.email if user in profile.followers or user == self else '','edit': True if user == self else False}
-        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False,'id':'','gender':'','last_name':'','phone':'','email':'','edit': False}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','first_name':self.first_name,'last_name':self.last_name,'phone':self.phone if user in profile.followers or user == self else '','email':self.email if user in profile.followers or user == self else '','edit': True if user == self else False,'no_of_post':post}
+        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False,'id':'','gender':'','last_name':'','phone':'','email':'','edit': False,'no_of_post':post}
     
     def search(self,search,claims):
         if search.get('search') and claims:
@@ -381,7 +382,6 @@ class Profile(Document):
             profile = Profile.objects(user=user).first()
             user.first_name = req.get('first_name')
             user.last_name = req.get('last_name')
-            user.email = req.get('email')
             user.phone = req.get('phone')
             user.gender =req.get('gender')
             user.save()
@@ -393,7 +393,7 @@ class Profile(Document):
             user = User.objects(id=claims.get('user_id')).first()
             profile_user = User.objects(id=req.get('user_id')).first()
             profile = Profile.objects(user=profile_user).first()
-            if user not in profile.blocklist:
+            if user and user not in profile.blocklist:
                 return profile_user.to_detail_json(claims)
             return False
         return False
@@ -838,8 +838,8 @@ class UserActivity(Document):
             elif user and comment and action :
                 
                 user=User.objects(id = data.get('user_id'),active=True).first()
-                post=Post.objects(id = data.get('post_id'),active=True).first()
                 comment =Comment.objects(active=True,id=comment).first()
+                post=Post.objects(comments__in=[comment], active=True).first()
                 user_name = str(user.first_name) + '' + str(
                     user.last_name) if user.first_name and user.last_name else str(user.first_name)
                 if user and post and comment  and action=='add':
@@ -923,7 +923,20 @@ class UserActivity(Document):
             return False
 
 
+class Message(Document):
+    reference_message = ReferenceField('self')
+    time = DateTimeField(default= datetime.datetime.utcnow())
+    message = StringField()
+    delivered = BooleanField(default=False)
+    viewed = BooleanField(default=False)
+    active = BooleanField(default=True)
+    attachments = ListField(ReferenceField(MediaAttachment))
 
+
+class MessageGroup(Document):
+    participants = ListField(ReferenceField(User,required=True))
+    active = BooleanField(default=True)
+    messages = ListField(ReferenceField(Message))
 
 
 def send_mail(mail_obj,msg):

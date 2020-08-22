@@ -126,7 +126,7 @@ def signup():
 
             else:
                 return jsonify({'code': 400,'status': is_valid_otp})
-            disconnect(host=DB_URI)
+
 
             # access_token = create_access_token(identity = new_user.email)
             # refresh_token = create_refresh_token(identity = new_user.email)
@@ -138,7 +138,7 @@ def signup():
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-        disconnect(host=DB_URI)
+
 
 @app.route('/auth/signup/verify',methods = ['POST'])
 def signup_verify():
@@ -161,7 +161,7 @@ def signup_verify():
             return jsonify({'code': 400,'status': 'OTP Generated got expired!!'})
         
         return jsonify({'code': 400,'status': is_valid})
-        disconnect(host=DB_URI)
+
             
     except Exception as e:
         logging.error(e)
@@ -883,6 +883,23 @@ def delete_activities():
     finally:
         disconnect()
 
+@app.route('/comment/delete',methods = ['POST'])
+@jwt_optional
+@cross_origin()
+def delete_comment():
+    try:
+        if request.method == 'POST':
+            claims = get_jwt_claims()
+            connect(alias='around')
+            requestbody =json.loads(request.data)
+            comment = Comment()
+            if comment.delete_comment(requestbody.get('id'),claims):
+                return jsonify({'code': 200, 'status': 'Success'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc())
+        return jsonify({'code': 500, 'status': 'Internal Server Error'})
 
 
 if __name__ == '__main__':
