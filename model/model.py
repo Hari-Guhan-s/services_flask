@@ -311,10 +311,12 @@ class Profile(Document):
     blocklist =ListField(ReferenceField(User))
     blocked_by =ListField(ReferenceField(User))
     location  = PointField()
-    profile_image_orginal = ImageField(collection_name='profile_images')
-    profile_image_small = ImageField(collection_name='profile_images')
+    profile_image_orginal = FileField()
+    profile_image_small = FileField()
     profile_crop_area= StringField()
-    
+    profile_image_file_name = StringField()
+
+
     def upload_image(self,req,claims):
         if req and claims and req.get('data'):
             author = User.objects(id=claims.get('user_id')).first()
