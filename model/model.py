@@ -257,7 +257,7 @@ class User(Document):
         user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
         if self.active:
             return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','followers':len(profile.followers),'following':len(profile.following)}
-        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'',following:False,'id':'','gender':'','followers':0,'following':0}
+        return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'','following':False,'id':'','gender':'','followers':0,'following':0}
     
     def to_detail_json(self,claims=None):
         profile = Profile.objects(user= self).first()
@@ -335,7 +335,7 @@ class Profile(Document):
         user_id = User.objects(id =user_id,active=True).first()
         media = Profile.objects(user=user_id).first()
         if media:
-            return {'filename': media.profile_image_file_name,'content':media.profile_image_orginal.read(),'crop':media.profile_image_small.read(),'crop_area':profile_crop_area}
+            return {'filename': media.profile_image_file_name,'content':media.profile_image_orginal.read(),'crop':media.profile_image_small.read()}
         return False
 
     def follow_user(self,req,claims):
