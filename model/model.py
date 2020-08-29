@@ -29,6 +29,8 @@ limit = config_param['General'].getint('limit')
 offset = config_param['General'].getint('offset')
 resend_password_time_limit= config_param['General'].getint('resend_password_time_limit')
 posts_view_threshold = config_param['General'].getint('posts_view_threshold')
+activity_threshold = config_param['General'].getint('activity_threshold')
+activity_threshold
 config={}
 config['URL'] =config_param['General'].get('URL').strip()
 
@@ -712,8 +714,10 @@ class Post(Document):
         elif req.get('post') and claims:
             post = Post.objects(id=req.get('post'),active=True).first()
             location = post.location
+        distance = int(req.get('radius',0)) if int(req.get('radius',0)) else 10
+        
         if location:
-            posts = Post.objects[:20](id=req.get('post'),active=True,privacy='Public',location__within_spherical_distance=[location,req.get('radius') if req.get('radius') else 100],id__ne=req.get('post'))
+            posts = Post.objects[:20](id=req.get('post'),active=True,privacy='Public',location__within_spherical_distance=(location,distance/6371))
             return [post.to_json(claims) for post in posts]
         return []    
             
@@ -802,7 +806,7 @@ class UserActivity(Document):
 
     def add_activity(self,data):
         activity_count = UserActivity.objects(active=True,user=data.get('user_id')).count()
-        if activity_count < 20:
+        if activity_count < activity_threshold:
             activity=UserActivity()
         else:
             activity = UserActivity.objects(user=data.get('user_id'),active=True).skip(19)
