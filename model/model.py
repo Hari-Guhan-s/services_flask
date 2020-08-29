@@ -30,7 +30,7 @@ offset = config_param['General'].getint('offset')
 resend_password_time_limit= config_param['General'].getint('resend_password_time_limit')
 posts_view_threshold = config_param['General'].getint('posts_view_threshold')
 activity_threshold = config_param['General'].getint('activity_threshold')
-activity_threshold
+
 config={}
 config['URL'] =config_param['General'].get('URL').strip()
 
