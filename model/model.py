@@ -561,7 +561,7 @@ class Post(Document):
             likes_by=[user.to_json() for user in self.liked_by[:limit]]
             dislikes_by=[user.to_json() for user in self.disliked_by[:limit]]
             attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
-            comments=[comment.to_json(claims)for comment in self.comments[:limit]]
+            comments=[comment.to_json(claims)for v,comment in enumerate(self.comments) if comment.active and v < limit]
             liked = True if claims and user in self.liked_by else False
             disliked = True if claims and user in self.disliked_by  else False
             collections = Collections.objects(active=True,user=claims.get('user_id')).first()
