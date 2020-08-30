@@ -257,8 +257,9 @@ class User(Document):
     def to_json(self,claims=None):
         profile = Profile.objects(user= self).first()
         user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
+        post = Post.objects(author=self,active=True).count()
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','followers':len(profile.followers),'following':len(profile.following)}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','followers':len(profile.followers) or 0 ,'following':len(profile.following) or 0,'no_of_post':post}
         return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'','following':False,'id':'','gender':'','followers':0,'following':0}
     
     def to_detail_json(self,claims=None):
@@ -326,8 +327,10 @@ class Profile(Document):
             if not profile:
                 profile = Profile(user=author).save()
             profile.profile_image_orginal=base64.b64decode(req.get('data'))
-            profile.profile_image_small = base64.b64decode(req.get('cropped'))
-            profile.profile_crop_area = req.get('crop_area')
+            if req.get('cropped'):
+                profile.profile_image_small = base64.b64decode(req.get('cropped'))
+            if req.get('crop_area'):
+                profile.profile_crop_area = req.get('crop_area')
             profile.profile_image_file_name = req.get('file_name')+'.'+req.get('file_ext')
             profile.save()
             return {'code':200,'status':'Profile image uploaded successfully.'}
@@ -717,7 +720,7 @@ class Post(Document):
         distance = int(req.get('radius',0)) if int(req.get('radius',0)) else 10
         
         if location:
-            posts = Post.objects[:20](id=req.get('post'),active=True,privacy='Public',location__within_spherical_distance=(location,distance/6371))
+            posts = Post.objects[:20](active=True,privacy='Public',location__within_spherical_distance=(location,distance/6371))
             return [post.to_json(claims) for post in posts]
         return []    
             

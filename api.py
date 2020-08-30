@@ -548,6 +548,7 @@ def profile_upload():
         connect(host=DB_URI)
         profile=Profile()
         is_valid = profile.upload_image(requestbody,claims)
+        
         if is_valid:
             return jsonify(is_valid)
         return jsonify({'code': 500,'status': 'Something went wrong'})
@@ -569,7 +570,7 @@ def profile_follow():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 500,'status': 'Something went wrong'})
     except Exception as e:
-        logging.error(traceback.format_exc())
+        logging.error(traceback.format_exc()
         return jsonify({'code': 500,'status': 'Something went wrong'})
 
 @app.route('/profile/block',methods = ['POST'])
@@ -652,6 +653,8 @@ def get_users():
         res = user.get_users(claims)
         return jsonify({'code': 200,'status': 'Success','users':res})
     except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc())
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
@@ -669,6 +672,8 @@ def get_media(media_id):
             response.headers['Content-Type'] = 'application/octet-stream'
             response.headers["Content-Disposition"] = "attachment; filename={}".format(res.get('filename'))
             return response
+        else:
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         logging.error(e)
         abort(404)
@@ -681,14 +686,17 @@ def get_profile(profile_id):
         connect(host=DB_URI)
         profile=Profile()
         res = profile.download_profile(profile_id)
-        if res:
+        if res and res.get('content',False):
             logging.info(res)
             response = make_response(res.get('content'))
             response.headers['Content-Type'] = 'application/octet-stream'
             response.headers["Content-Disposition"] = "attachment; filename={}".format(res.get('filename'))
             return response
+        else:
+            return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         logging.error(e)
+
         abort(404)
 
 @app.route('/collection',methods = ['POST'])
