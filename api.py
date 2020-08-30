@@ -585,7 +585,7 @@ def accept_follow():
         is_valid = profile.block_user(requestbody,claims)
         if is_valid:
             return jsonify({'code': 200,'status': 'Success'})
-        return jsonify({'code': 500,'status': 'Something went wrong'})
+        return jsonify({'code': 400,'status': 'Something went wrong'})
     except Exception as e:
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Something went wrong'})
