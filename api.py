@@ -570,7 +570,7 @@ def profile_follow():
             return jsonify({'code': 200,'status': 'Success'})
         return jsonify({'code': 500,'status': 'Something went wrong'})
     except Exception as e:
-        logging.error(traceback.format_exc()
+        logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Something went wrong'})
 
 @app.route('/profile/block',methods = ['POST'])
