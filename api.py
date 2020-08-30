@@ -391,7 +391,7 @@ def view_all_post():
         post=Post()
         is_valid = post.view_all_post(requestbody,claims)
         if is_valid:
-            return jsonify({'code': 200,'status': 'Success','posts' :is_valid})
+            return jsonify({'code': 200,'status': 'Success','posts' :is_valid,'total_posts':len(is_valid)})
         return jsonify({'code': 400,'status': 'No Posts','posts':[]})
     except Exception as e:
         import traceback
@@ -413,7 +413,7 @@ def get_my_post():
         requestbody =json.loads(request.data)
         my_posts=post.get_my_post(requestbody,claims)
         if my_posts and len(my_posts)>0:
-            return jsonify({'code': 200,'status': 'Success','posts' :my_posts})
+            return jsonify({'code': 200,'status': 'Success','posts' :my_posts,'total_posts':len(my_posts)})
         return jsonify({'code': 400,'status': 'No Posts','posts':[]})
     except Exception as e:
         logging.error(e)
