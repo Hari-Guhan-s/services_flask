@@ -379,6 +379,8 @@ def save_post():
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         return jsonify({'code': 500,'status': 'Internal Server Error'})
+    finally:
+        disconnect()
     
 @app.route('/post/all/',methods = ['POST'])
 @jwt_required
@@ -391,13 +393,15 @@ def view_all_post():
         post=Post()
         is_valid = post.view_all_post(requestbody,claims)
         if is_valid:
-            return jsonify({'code': 200,'status': 'Success','posts' :is_valid,'total_posts':len(is_valid)})
+            return jsonify({'code': 200,'status': 'Success','posts' :is_valid})
         return jsonify({'code': 400,'status': 'No Posts','posts':[]})
     except Exception as e:
         import traceback
         logging.error(traceback.format_exc())
         
         return jsonify({'code': 500,'status': 'Internal Server Error'})
+    finally:
+        disconnect()
 
 
 @app.route('/post/my_post',methods = ['POST'])
@@ -413,12 +417,14 @@ def get_my_post():
         requestbody =json.loads(request.data)
         my_posts=post.get_my_post(requestbody,claims)
         if my_posts and len(my_posts)>0:
-            return jsonify({'code': 200,'status': 'Success','posts' :my_posts,'total_posts':len(my_posts)})
+            return jsonify({'code': 200,'status': 'Success','posts' :my_posts})
         return jsonify({'code': 400,'status': 'No Posts','posts':[]})
     except Exception as e:
         logging.error(e)
+        logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-
+    finally:
+        disconnect()
     
 
 @app.route('/post/<post_id>',methods = ['GET','POST'])
@@ -447,7 +453,8 @@ def view_post(post_id):
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    
+    finally:
+        disconnect()
     
 @app.route('/post/delete',methods = ['POST'])
 @jwt_required
@@ -467,7 +474,8 @@ def delete_post():
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    
+    finally:
+        disconnect()
 '''like object services
     req {'post' :post_id}
 '''
@@ -487,6 +495,8 @@ def like_post():
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
+    finally:
+        disconnect()
     
 @app.route('/post/dislike',methods = ['POST'])
 @jwt_required
@@ -657,6 +667,8 @@ def get_users():
         logging.error(traceback.format_exc())
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
+    finally:
+        disconnect()
 
 @app.route('/media/<media_id>',methods = ['GET'])
 @cross_origin()
@@ -898,7 +910,7 @@ def delete_comment():
     try:
         if request.method == 'POST':
             claims = get_jwt_claims()
-            connect(alias='around')
+            connect(host=DB_URI)
             requestbody =json.loads(request.data)
             comment = Comment()
             if comment.delete_comment(requestbody.get('id'),claims):
