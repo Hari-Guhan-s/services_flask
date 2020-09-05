@@ -33,8 +33,9 @@ dir_name=dir_name.joinpath('app.cfg')
 config.read(dir_name)
 
 # DB
-DB_URI = 'mongodb+srv://django:80sfDmuxz8ne6S6O@heroku-fb2pzxs9.o862o.mongodb.net/heroku_fb2pzxs9?authSource=admin&replicaSet=atlas-9ktnhl-shard-0&w=majority&readPreference=primary&retryWrites=true&ssl=true'
+# DB_URI = 'mongodb+srv://django:80sfDmuxz8ne6S6O@heroku-fb2pzxs9.o862o.mongodb.net/heroku_fb2pzxs9?authSource=admin&replicaSet=atlas-9ktnhl-shard-0&w=majority&readPreference=primary&retryWrites=true&ssl=true'
 app.config["MONGODB_HOST"] = config['DB'].get('URI').strip().replace("'","").replace('"','')
+DB_URI= app.config["MONGODB_HOST"]
 #JWT
 app.config['JWT_SECRET_KEY'] = config['JWT'].get('JWT_SECRET_KEY').strip()
 app.config['JWT_ERROR_MESSAGE_KEY'] = config['JWT'].get('JWT_ERROR_MESSAGE_KEY').strip()
@@ -56,7 +57,7 @@ ALLOWED_EXTENSIONS = set(config['General']['ALLOWED_EXTENSIONS'].strip().split('
 app.config['EXECUTOR_PROPAGATE_EXCEPTIONS'] = config['General'].getboolean('EXECUTOR_PROPAGATE_EXCEPTIONS')
 
 
-
+print(DB_URI)
 
 mail=Mail(app)
 def allowed_file(filename):
@@ -379,8 +380,8 @@ def save_post():
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
     
 @app.route('/post/all/',methods = ['POST'])
 @jwt_required
@@ -400,8 +401,8 @@ def view_all_post():
         logging.error(traceback.format_exc())
         
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
 
 
 @app.route('/post/my_post',methods = ['POST'])
@@ -423,8 +424,8 @@ def get_my_post():
         logging.error(e)
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
     
 
 @app.route('/post/<post_id>',methods = ['GET','POST'])
@@ -453,8 +454,8 @@ def view_post(post_id):
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
     
 @app.route('/post/delete',methods = ['POST'])
 @jwt_required
@@ -474,8 +475,8 @@ def delete_post():
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
 '''like object services
     req {'post' :post_id}
 '''
@@ -495,8 +496,8 @@ def like_post():
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
     
 @app.route('/post/dislike',methods = ['POST'])
 @jwt_required
@@ -667,8 +668,8 @@ def get_users():
         logging.error(traceback.format_exc())
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
 
 @app.route('/media/<media_id>',methods = ['GET'])
 @cross_origin()
@@ -797,8 +798,8 @@ def get_my_activities():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
     
 @app.route('/profile/update',methods = ['POST'])
 @jwt_optional
@@ -821,8 +822,8 @@ def update_profile():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
         
 @app.route('/profile/view',methods = ['POST'])
 @jwt_optional
@@ -845,8 +846,8 @@ def view_profile():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
 
 @app.route('/post/near',methods = ['POST'])
 @jwt_optional
@@ -865,8 +866,8 @@ def view_near_by():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
 
 @app.route('/activity/delete',methods = ['GET','POST'])
 @jwt_optional
@@ -900,8 +901,8 @@ def delete_activities():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    finally:
-        disconnect()
+    # finally:
+    #     disconnect()
 
 @app.route('/comment/delete',methods = ['POST'])
 @jwt_optional
