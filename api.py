@@ -921,6 +921,25 @@ def delete_comment():
         logging.error(traceback.format_exc())
         return jsonify({'code': 500, 'status': 'Internal Server Error'})
 
+@app.route('/reacts_around',methods = ['POST'])
+@jwt_optional
+@cross_origin()
+def get_reacts_around():
+    try:
+        if request.method == 'POST':
+            claims = get_jwt_claims()
+            connect(host=DB_URI)
+            requestbody =json.loads(request.data)
+            post = Post()
+            result = post.get_reacts_around(requestbody,claims)
+            if result:
+                return jsonify({'code': 200, 'status': 'Success','data':result})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc())
+        return jsonify({'code': 500, 'status': 'Internal Server Error'})
+
 
 if __name__ == '__main__':
     db = MongoEngine(app)

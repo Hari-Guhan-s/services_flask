@@ -575,7 +575,26 @@ class Post(Document):
                 collection =False
             data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked,'dislike':disliked,'comments':comments,'owner':True if self.author==user else False,'location':self.location,'collection': collection}
             return data
-    
+
+    def to_data(self,claims=None):
+        if self.active:
+            user= User.objects(active=True,id=claims.get('user_id')).first()
+            likes_by=[user.to_json(claims) for user in self.liked_by[:limit]]
+            dislikes_by=[user.to_json(claims) for user in self.disliked_by[:limit]]
+            attachments=[attachment.to_json() for attachment in self.attachments[:limit]]
+            comments=[comment.to_json(claims)for v,comment in enumerate(self.comments) if comment.active and v < limit]
+            liked = True if claims and user in self.liked_by else False
+            disliked = True if claims and user in self.disliked_by  else False
+            collections = Collections.objects(active=True,user=claims.get('user_id')).first()
+            if collections and self in collections.posts:
+                    # logging.info(data.to_json(claims))
+                collection =True
+            else:
+                collection =False
+            data={'id':str(self.id),'author':self.author.to_json(claims),'created_on':self.created_time,'updated_on':self.updated_time,'post':self.post,'topic':self.topic,'likes':len(self.liked_by),'liked_by':likes_by,'dislikes':len(self.disliked_by),'disliked_by':dislikes_by,'shares':self.shares,'privacy':self.privacy,'hashtags':self.hashtags,'attachments':attachments,'liked':liked or 0,'dislike':disliked or 0,'comments':comments,'total_comments':len(comments) if len(comments) else 0,'owner':True if self.author==user else False,'location':self.location,'collection': collection}
+            return data
+  
+
     def validate_post(self,post,claims):
         if post and claims:
             attachment =[]
@@ -634,6 +653,37 @@ class Post(Document):
             return False
         return False
     
+    def get_reacts_around(self,data,claims):
+        if data and 'location' in data and claims:
+            location = data.get('location',False)
+            distance = int(data.get('location_max_distance',0)) if int(data.get('location_max_distance',0)) else 10
+            final_data = []
+            if location and distance:                
+                posts =Post.objects(active=True,privacy='Public',location__within_spherical_distance =(location,distance/6371)).order_by('-updated_time').limit(10)
+                # print(len(posts),"======>no of posts")
+                if len(posts)>0:
+                    post_data = [post.to_data(claims) for post in posts]
+                    # print(len(post_data),"======>no of post_data")
+                    if len(post_data)>0:
+                        post_data.sort(key=lambda x: x.get('total_comments'))
+                        # print(len(post_data),"======>no of post_data comments sorted")
+                        final_data.append(post_data[0])
+                        post_data.pop(0)
+                    if len(post_data)>0:
+                        post_data.sort(key=lambda x: x.get('liked'))
+                        final_data.append(post_data[0])
+                        post_data.pop(0)
+                    if len(post_data)>0:
+                        post_data.sort(key=lambda x: x.get('disliked') ,reverse=True)
+                        final_data.append(post_data[0])
+                        post_data.pop(0)
+                    if len(post_data)>0:
+                        final_data.extend(post_data.sort(key=lambda x: x.get('updated_on'),reverse=True))
+            if len(final_data):
+                return final_data
+
+        return False
+    
     def view_all_post(self,data,claims):
         if claims:
             skip_count = int(data.get('skip_count',0))
@@ -642,9 +692,9 @@ class Post(Document):
             
             if location and distance:
                 
-                posts =Post.objects(active=True,privacy='Public',location__within_spherical_distance =(location,distance/6371)).order_by('-created_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
+                posts =Post.objects(active=True,privacy='Public',location__within_spherical_distance =(location,distance/6371)).order_by('-updated_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
             else:
-                posts =Post.objects(active=True,privacy='Public').order_by('-created_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
+                posts =Post.objects(active=True,privacy='Public').order_by('-updated_time').skip(skip_count).limit(int(posts_view_threshold)+skip_count)
             if posts:
                 return [post.to_json(claims) for post in posts ]
             return False
