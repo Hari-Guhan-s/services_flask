@@ -528,6 +528,30 @@ class Comment(Document):
             return False
         return False
 
+    def edit_comment(self,req,claims):
+        if req.get('comment') and req.get('comment_id') and claims:
+            attachment =[]
+            mention=[]
+            user = User.get_user(self,claims=claims)
+            comment = Comment.objects(active=True,id=req.get('comment_id')).first()
+            if user and comment:
+                for media in req.get('attachments',[]):
+                    m = MediaAttachment(filename=media.get('file_name'),file_extension=media.get('file_ext'),type=media.get('file_type'),content=base64.b64decode(media.get('data')),uploaded_by=author).save()
+                    attachment.append(m)
+                for user in req.get('mention',[]):
+                    u = User.objects(id=user)
+                    mention.append(u)
+                comment.comment = req.get('comment')
+                comment.attachments = attachment
+                comment.mentions = mention
+                comment.hashtags = re.findall(r"#(\w+)",req.get('comment'))
+                comment.save()
+                activity=UserActivity()
+                activity.add_activity(data={'user_id':claims.get('user_id'),'action':'update','comment_id':comment.id})
+                return comment.to_json(claims)
+            return False
+        return False
+
     def to_json(self,claims):
         if self.active:
             user= User.get_user(self,claims=claims)

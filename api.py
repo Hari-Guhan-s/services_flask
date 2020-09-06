@@ -57,7 +57,7 @@ ALLOWED_EXTENSIONS = set(config['General']['ALLOWED_EXTENSIONS'].strip().split('
 app.config['EXECUTOR_PROPAGATE_EXCEPTIONS'] = config['General'].getboolean('EXECUTOR_PROPAGATE_EXCEPTIONS')
 
 
-print(DB_URI)
+
 
 mail=Mail(app)
 def allowed_file(filename):
@@ -916,6 +916,25 @@ def delete_comment():
             comment = Comment()
             if comment.delete_comment(requestbody.get('id'),claims):
                 return jsonify({'code': 200, 'status': 'Success'})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc())
+        return jsonify({'code': 500, 'status': 'Internal Server Error'})
+
+@app.route('/comment/update',methods = ['POST'])
+@jwt_optional
+@cross_origin()
+def edit_comment():
+    try:
+        if request.method == 'POST':
+            claims = get_jwt_claims()
+            connect(host=DB_URI)
+            requestbody =json.loads(request.data)
+            comment = Comment()
+            result = comment.edit_comment(requestbody,claims)
+            if result:
+                return jsonify({'code': 200, 'status': 'Success','data':result})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         import traceback
