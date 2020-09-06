@@ -928,9 +928,9 @@ class UserActivity(Document):
                 if user and post and comment  and action=='add':
                     description = str(user_name)+' have commented on '+str(post.topic)
                 if user and post and comment  and action=='remove':
-                    description = str(user_name)+' have removed the comment from'+str(post.topic)
+                    description = str(user_name)+' have removed the comment from '+str(post.topic)
                 if user and post and comment  and action=='update':
-                    description = str(user_name)+' have edited the comment on'+str(post.topic)
+                    description = str(user_name)+' have edited the comment on '+str(post.topic)
                 # if user and comment and action=='like':
                 #     description = str(user.profile_name)+' liked the your comment '
                 # if user and comment  and action=='dislike':
