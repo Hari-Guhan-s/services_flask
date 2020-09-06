@@ -259,7 +259,7 @@ class User(Document):
         # user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
         post = Post.objects(author=self,active=True).count()
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if self in profile.followers else False,'id':str(self.id),'gender':self.gender or '','no_of_followers':len(profile.followers) or 0 ,'no_of_following':len(profile.following) or 0,'no_of_post':post}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if self in profile.followers else False,'id':str(self.id),'gender':self.gender or '','followers_count':len(profile.followers) if profile.followers else 0 ,'following_count':len(profile.following) if profile.following else 0,'no_of_post':post}
         return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'','following':False,'id':'','gender':'','followers':0}
     
     def to_detail_json(self,claims=None):
@@ -267,7 +267,7 @@ class User(Document):
         user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
         post = Post.objects(author=self,active=True).count()
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','first_name':self.first_name,'last_name':self.last_name,'phone':self.phone if user in profile.followers or user == self else '','email':self.email if user in profile.followers or user == self else '','edit': True if user == self else False,'no_of_post':post,'no_of_followers':len(profile.followers) or 0 ,'no_of_following':len(profile.following) or 0}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','first_name':self.first_name,'last_name':self.last_name,'phone':self.phone if user in profile.followers or user == self else '','email':self.email if user in profile.followers or user == self else '','edit': True if user == self else False,'no_of_post':post,'followers_count':len(profile.followers) if profile.followers else  0 ,'following_count':len(profile.following) if profile.following else 0}
         return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'','following':False,'id':'','gender':'','last_name':'','phone':'','email':'','edit': False,'no_of_post':post}
     
     def search(self,search,claims):
