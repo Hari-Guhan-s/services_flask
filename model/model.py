@@ -267,7 +267,7 @@ class User(Document):
         user = User.objects(id = claims.get('user_id'),active=True).first() if claims and  claims.get('user_id') else ''
         post = Post.objects(author=self,active=True).count()
         if self.active:
-            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','first_name':self.first_name,'last_name':self.last_name,'phone':self.phone if user in profile.followers or user == self else '','email':self.email if user in profile.followers or user == self else '','edit': True if user == self else False,'no_of_post':post,'followers_count':len(profile.followers) if profile.followers else  0 ,'following_count':len(profile.following) if profile.following else 0}
+            return{'user_name':self.user_name,'name':str(self.first_name)+' '+str(self.last_name),'language':self.language,'profile_image':config['URL']+'/profile/'+str(self.id) if profile.profile_image_orginal else '','following':True if user in profile.followers else False,'id':str(self.id),'gender':self.gender or '','first_name':self.first_name,'last_name':self.last_name,'phone':self.phone if user in profile.followers or user == self else '','email':self.email if user in profile.followers or user == self else '','edit': True if user == self else False,'no_of_post':post,'followers_count':len(profile.followers),'following_count':len(profile.following)}
         return {'user_name':'in_active_user','name':'Inactive User','language':'en/US','profile_image':'','following':False,'id':'','gender':'','last_name':'','phone':'','email':'','edit': False,'no_of_post':post}
     
     def search(self,search,claims):
@@ -286,7 +286,7 @@ class User(Document):
     
     def get_users(self,claims):
         if claims:
-            users = User.objects(id=claims.get('user_id'),active=True)
+            users = User.objects(id__ne=claims.get('user_id'),active=True)
             return [user.to_json(claims) for user in users]
         return []
 
@@ -405,6 +405,24 @@ class Profile(Document):
             return False
         return False
             
+    def get_followers(self,req,claims={}):
+        user_id = req.get('user_id') or claims.get('user_id')
+        if user_id:
+            user = User.objects(id=user_id).first()
+            profile = Profile.objects(user=user).first()
+            return [usr.to_detail_json(claims) for usr in profile.followers]
+        return False
+
+    def get_following(self,req,claims={}):
+        user_id = req.get('user_id') or claims.get('user_id')
+        if user_id:
+            user = User.objects(id=user_id).first()
+            profile = Profile.objects(user=user).first()
+            return [usr.to_detail_json(claims) for usr in profile.following]
+        return False
+
+
+
 class TokenBlacklist(Document):
     
     token = StringField(required=True,primary_key=True)
@@ -792,7 +810,7 @@ class Post(Document):
             post = Post.objects(id=req.get('post'),active=True).first()
             location = post.location
         distance = int(req.get('radius',0)) if int(req.get('radius',0)) else 10
-        
+
         if location:
             posts = Post.objects[:20](active=True,privacy='Public',location__within_spherical_distance=(location,distance/6371))
             return [post.to_json(claims) for post in posts]

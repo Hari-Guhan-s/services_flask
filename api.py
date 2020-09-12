@@ -424,8 +424,7 @@ def get_my_post():
         logging.error(e)
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    # finally:
-    #     disconnect()
+
     
 
 @app.route('/post/<post_id>',methods = ['GET','POST'])
@@ -454,8 +453,7 @@ def view_post(post_id):
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    # finally:
-    #     disconnect()
+
     
 @app.route('/post/delete',methods = ['POST'])
 @jwt_required
@@ -475,8 +473,7 @@ def delete_post():
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    # finally:
-    #     disconnect()
+
 '''like object services
     req {'post' :post_id}
 '''
@@ -496,8 +493,6 @@ def like_post():
     except Exception as e:
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    # finally:
-    #     disconnect()
     
 @app.route('/post/dislike',methods = ['POST'])
 @jwt_required
@@ -668,8 +663,6 @@ def get_users():
         logging.error(traceback.format_exc())
         logging.error(e)
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    # finally:
-    #     disconnect()
 
 @app.route('/media/<media_id>',methods = ['GET'])
 @cross_origin()
@@ -713,7 +706,7 @@ def get_profile(profile_id):
         abort(404)
 
 @app.route('/collection',methods = ['POST'])
-@jwt_optional
+@jwt_required
 @cross_origin()
 def add_collections():
     try:
@@ -735,7 +728,7 @@ def add_collections():
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/collection/my_collection',methods = ['POST'])
-@jwt_optional
+@jwt_required
 @cross_origin()
 def get_collections():
     try:
@@ -757,7 +750,7 @@ def get_collections():
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/collection/remove',methods = ['POST'])
-@jwt_optional
+@jwt_required
 @cross_origin()
 def remove_from_collection():
     try:
@@ -778,7 +771,7 @@ def remove_from_collection():
         return jsonify({'code': 500,'status': 'Internal Server Error'})
 
 @app.route('/activity',methods = ['GET'])
-@jwt_optional
+@jwt_required
 @cross_origin()
 def get_my_activities():
     try:
@@ -798,11 +791,9 @@ def get_my_activities():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    # finally:
-    #     disconnect()
     
 @app.route('/profile/update',methods = ['POST'])
-@jwt_optional
+@jwt_required
 @cross_origin()
 def update_profile():
     try:
@@ -822,8 +813,6 @@ def update_profile():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    # finally:
-    #     disconnect()
         
 @app.route('/profile/view',methods = ['POST'])
 @jwt_optional
@@ -846,8 +835,6 @@ def view_profile():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    # finally:
-    #     disconnect()
 
 @app.route('/post/near',methods = ['POST'])
 @jwt_optional
@@ -866,11 +853,9 @@ def view_near_by():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    # finally:
-    #     disconnect()
 
 @app.route('/activity/delete',methods = ['GET','POST'])
-@jwt_optional
+@jwt_required
 @cross_origin()
 def delete_activities():
     try:
@@ -901,11 +886,9 @@ def delete_activities():
         import traceback
         logging.error(traceback.format_exc())
         return jsonify({'code': 500,'status': 'Internal Server Error'})
-    # finally:
-    #     disconnect()
 
 @app.route('/comment/delete',methods = ['POST'])
-@jwt_optional
+@jwt_required
 @cross_origin()
 def delete_comment():
     try:
@@ -954,6 +937,41 @@ def get_reacts_around():
             result = post.get_reacts_around(requestbody,claims)
             if result:
                 return jsonify({'code': 200, 'status': 'Success','data':result})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc())
+        return jsonify({'code': 500, 'status': 'Internal Server Error'})
+@app.route('/followers/list',methods = ['GET'])
+@jwt_optional
+@cross_origin()
+def get_followers():
+    try:
+        if request.method == 'GET':
+            claims = get_jwt_claims()
+            connect(alias='around')
+            requestbody =json.loads(request.data)
+            profile = Profile()
+            res = profile.get_followers(requestbody,claims)
+            return jsonify({'code': 200, 'status': 'Success','data':res})
+        return jsonify({'code': 400,'status': 'Something went wrong.'})
+    except Exception as e:
+        import traceback
+        logging.error(traceback.format_exc())
+        return jsonify({'code': 500, 'status': 'Internal Server Error'})
+
+@app.route('/following/list',methods = ['GET'])
+@jwt_optional
+@cross_origin()
+def get_following():
+    try:
+        if request.method == 'GET':
+            claims = get_jwt_claims()
+            connect(alias='around')
+            requestbody =json.loads(request.data)
+            profile = Profile()
+            res = profile.get_following(requestbody,claims)
+            return jsonify({'code': 200, 'status': 'Success','data':res})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         import traceback
