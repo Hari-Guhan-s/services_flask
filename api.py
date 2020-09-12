@@ -937,6 +937,8 @@ def get_reacts_around():
             result = post.get_reacts_around(requestbody,claims)
             if result:
                 return jsonify({'code': 200, 'status': 'Success','data':result})
+            elif not result or (isinstance(result,(list)) and len(result) == 0):
+                return jsonify({'code': 200, 'status': 'Success','data':"no_post_found"})
         return jsonify({'code': 400,'status': 'Something went wrong.'})
     except Exception as e:
         import traceback

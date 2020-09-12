@@ -707,20 +707,22 @@ class Post(Document):
                     post_data = [post.to_data(claims) for post in posts]
                     # print(len(post_data),"======>no of post_data")
                     if len(post_data)>0:
-                        post_data.sort(key=lambda x: x.get('total_comments'))
+                        post_data.sort(key=lambda x: x.get('total_comments',0))
                         # print(len(post_data),"======>no of post_data comments sorted")
                         final_data.append(post_data[0])
                         post_data.pop(0)
                     if len(post_data)>0:
-                        post_data.sort(key=lambda x: x.get('liked'))
+                        post_data.sort(key=lambda x: x.get('liked',0))
                         final_data.append(post_data[0])
                         post_data.pop(0)
                     if len(post_data)>0:
-                        post_data.sort(key=lambda x: x.get('disliked') ,reverse=True)
+                        post_data.sort(key=lambda x: x.get('disliked',0) ,reverse=True)
                         final_data.append(post_data[0])
                         post_data.pop(0)
+                    # print(len(post_data),"======>no of post_data")
                     if len(post_data)>0:
-                        final_data.extend(post_data.sort(key=lambda x: x.get('updated_on'),reverse=True))
+                        post_data.sort(key=lambda x: x.get('updated_on',0),reverse=True)
+                        final_data.extend(post_data)
             if len(final_data):
                 return final_data
 
