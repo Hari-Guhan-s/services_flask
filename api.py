@@ -950,7 +950,7 @@ def get_followers():
         if request.method == 'GET':
             claims = get_jwt_claims()
             connect(alias='around')
-            requestbody =json.loads(request.data)
+            requestbody =json.loads(request.data) if request.data else {}
             profile = Profile()
             res = profile.get_followers(requestbody,claims)
             return jsonify({'code': 200, 'status': 'Success','data':res})
@@ -968,7 +968,7 @@ def get_following():
         if request.method == 'GET':
             claims = get_jwt_claims()
             connect(alias='around')
-            requestbody =json.loads(request.data)
+            requestbody =json.loads(request.data) if request.data else {}
             profile = Profile()
             res = profile.get_following(requestbody,claims)
             return jsonify({'code': 200, 'status': 'Success','data':res})
